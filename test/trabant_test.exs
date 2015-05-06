@@ -28,4 +28,35 @@ defmodule TrabantTest do
     IO.inspect g
     fail = Foo.new(:foo)
   end
+  test "can filter by time" do
+    assert false, "can we filter nodes and edges by %ModTime{} via timex and exquisite"
+  end 
+  test "can use ecto as backend" do
+    assert false, "mockup ecto as backend"
+  end
+  test "ideas" do
+    assert false, """
+    using %Resource{..}, consider to defprotocol for %E{..} or %V{..}
+    where we can get the correct representation for a traversal depending on
+    the type of the items the stream emits
+    """
+  end
+  test "regex on key or value" do
+    assert false, "can we create a protocol to match a regex on a key or value?"
+  end
+  test "can use digraph, or mdigraph via composition" do
+    assert false, "adapter for different backends would be nice"
+  end
+  test "mnesia uses disk_copies to replicatate" do
+    assert false, "need to setup replication param"
+  end
+  test "mnesia backup restore" do
+    assert false, "backup restore from disk would be nice"
+  end
+  test "mnesia fails correctly" do
+    assert false, "test failure modes and things like {:majority,true}"
+  end
+  test "can we use Tasks to work in parallel?" do
+    assert false, "test using Tasks to do some work mid stream"
+  end
 end

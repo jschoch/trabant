@@ -3,7 +3,7 @@ defmodule Trabant do
   @type key :: String.t | atom
 end
 defmodule Trabant.G do
-  defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 0
+  defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 0,trace: false
 end
 defmodule Trabant.R do
   defstruct count: 0, data: [],graph: nil

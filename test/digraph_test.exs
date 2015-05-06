@@ -42,6 +42,11 @@ defmodule DigraphTest do
     map_match_result = graph |> outE(r.v,edge_label) |> res
     [map] = map_match_result.data
     assert map.label == edge_label, "wrong result #{inspect map_match_result}"
+
+    # test if bad match returns []
+
+    map_match_result = graph |> outE(r.v,%{nope: :nada}) |> res
+    assert map_match_result.data == [], "wrong result #{inspect map_match_result}"
   
     chain_result = graph |> outE(r.v,:lbl) |> inV(:nick) |> res
     assert chain_result.data == [%{nick: "Brock"}], "wrong result #{inspect chain_result}"
