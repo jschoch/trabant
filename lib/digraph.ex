@@ -51,6 +51,7 @@ defmodule Digraph do
     end)
     Map.put(graph,:stream,stream)
   end
+  @doc "get out edges, expects a list of vertexes from graph.stream"
   def outE(%Trabant.G{} = graph) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
       Logger.debug "vertex: #{inspect vertex}"
@@ -63,7 +64,6 @@ defmodule Digraph do
     IO.puts "unf"
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
       Logger.debug "vertex: #{inspect vertex}"
-      #outE(graph,vertex)
       Enum.filter(:digraph.out_edges(graph.g,vertex),fn(pointer) ->
         #TODO: consider that the edge label is not a map
         edge = e(graph.g,pointer)
@@ -73,6 +73,7 @@ defmodule Digraph do
     end)
     Map.put(graph,:stream,stream)
   end
+  @doc "get edges with matching k/v pairs in map arg"
   def outE(%Trabant.G{} = graph, map) when is_map(map) do
     Logger.debug "snu"
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
@@ -83,6 +84,7 @@ defmodule Digraph do
         case mmatch(edge.label,map) do
           true -> 
             Logger.debug "match: #{inspect edge_pointer}"
+            # TODO: consider option to return %Trabant.E vs edge pointer
             #%Trabant.E{pointer: pointer, a: a, b: b, label: label}
             edge_pointer
           false -> nil
@@ -92,25 +94,6 @@ defmodule Digraph do
     end)
     Map.put(graph,:stream,stream)
   end
-  #@doc "get out edges from single vertex"
-  #def outE(graph,v) do
-    #edges = :digraph.out_edges(graph.g,v)
-    #stream = Stream.map(edges,fn(edge) ->
-      #{pointer, a,b,label} = :digraph.edge(graph.g,edge)
-      #%Trabant.E{pointer: pointer, a: a,b: b,label: label}
-    #end)
-    #Map.put(graph,:stream,stream)
-  #end
-  #@doc "get out edges with key"
-  #@spec outE(Trabant.graph,any,Trabant.key) :: Trabant.graph
-  #def outE(graph,key) do
-    #edges = :digraph.out_edges(graph.g,v)
-    #stream = Stream.filter(edges,fn(edge) ->
-      #{e,a,b,label} = :digraph.edge(graph.g,edge)
-      #Map.has_key?(label,key)
-    #end)
-    #Map.put(graph,:stream,stream)
-  #end
   def inV(graph,key) do
     stream = Stream.map(graph.stream,fn(edge) ->
       IO.inspect edge

@@ -19,10 +19,16 @@ defmodule Trabant.B do
   defcallback add_edge(Trabant.graph,any,any,any) :: :ok
   defcallback v(Trabant.graph,any) :: any
   defcallback e(Trabant.graph,any) :: %{pointer: list,a: any,b: any,label: any}
-  defcallback outE(Trabant.graph,any) :: Trabant.graph
-  defcallback outE(Trabant.graph,any,String.t|atom) :: Trabant.graph
-  defcallback outE(Trabant.graph,any,Map) :: Trabant.graph
+  @doc "get all out edges for list of vertices from graph.stream"
+  defcallback outE(Trabant.graph) :: Trabant.graph
+  @doc "get out edges with matching key"
+  defcallback outE(Trabant.graph,String.t|atom) :: Trabant.graph
+  @doc "get out edges with matching key/value pairs from map arg"
+  defcallback outE(Trabant.graph,Map) :: Trabant.graph
   defcallback inV(Trabant.graph,Trabant.key) :: Trabant.graph
   defcallback create_v(Trabant.graph,any,any) :: :ok
-  defcallback out(Trabant.graph,any,Trabant.key) :: Trabant.graph
+  @doc "get all neighbors by out going edges"
+  defcallback out(Trabant.graph) :: Trabant.graph
+  @doc "get out neighbors with matching key/value pairs from map arg, expects list of vertices from graph.stream"
+  defcallback out(Trabant.graph,Trabant.key) :: Trabant.graph
 end
