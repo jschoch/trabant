@@ -57,13 +57,15 @@ defmodule DigraphTest do
   
     # test if map match filter works on outE
 
-    map_match_result = graph |> outE(vertex,edge_label) |> res
-    [map] = map_match_result.data
-    assert map.label == edge_label, "wrong result #{inspect map_match_result}"
+    map_match_result = graph |> v(vertex) |> outE(edge_label) |> res
+    assert map_match_result.data != [], "doh! #{inspect map_match_result}"
+    [edge_pointer] = map_match_result.data
+    edge = e(graph.g,edge_pointer)
+    assert edge.label == edge_label, "wrong result #{inspect map_match_result}"
 
     # test if bad match returns []
 
-    map_match_result = graph |> outE(vertex,%{nope: :nada}) |> res
+    map_match_result = graph |> v(vertex) |>  outE(%{nope: :nada}) |> res
     assert map_match_result.data == [], "wrong result #{inspect map_match_result}"
   
     chain_result = graph |> v(m) |> outE(:lbl) |> inV(:nick) |> res

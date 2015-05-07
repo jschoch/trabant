@@ -73,17 +73,23 @@ defmodule Digraph do
     end)
     Map.put(graph,:stream,stream)
   end
-  def outE(%Trabant.G{} = graph,v, map) when is_map(map) do
-    edges = :digraph.out_edges(graph.g,v)
-    stream = Stream.map(edges,fn(edge) ->
-      e = :digraph.edge(graph.g,edge)
-      {pointer,a,b,label} = e
-      case mmatch(label,map) do
-        true -> %Trabant.E{pointer: pointer, a: a, b: b, label: label}
-        false -> nil
-      end
+  def outE(%Trabant.G{} = graph, map) when is_map(map) do
+    Logger.debug "snu"
+    stream = Stream.flat_map(graph.stream,fn(vertex) ->
+      edges = :digraph.out_edges(graph.g,vertex)
+      Logger.debug "outE/2map edges #{inspect edges}"
+      stream = Stream.map(edges,fn(edge_pointer) ->
+        edge = e(graph.g,edge_pointer) 
+        case mmatch(edge.label,map) do
+          true -> 
+            Logger.debug "match: #{inspect edge_pointer}"
+            #%Trabant.E{pointer: pointer, a: a, b: b, label: label}
+            edge_pointer
+          false -> nil
+        end
+      end)
+      Stream.filter(stream,&(&1 != nil))
     end)
-    stream = Stream.filter(stream,&(&1 != nil))
     Map.put(graph,:stream,stream)
   end
   #@doc "get out edges from single vertex"
