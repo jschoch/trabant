@@ -25,7 +25,16 @@ defmodule Trabant.B do
   defcallback outE(Trabant.graph,String.t|atom) :: Trabant.graph
   @doc "get out edges with matching key/value pairs from map arg"
   defcallback outE(Trabant.graph,Map) :: Trabant.graph
+  @doc "get in neighbours"
+  defcallback inn(Traban.graph) :: Trabant.graph
+  @doc "get in with map match"
+  defcallback inn(Trabant.graph,map) :: Trabant.graph
+  @doc "get in neighbours with where"
+  defcallback inn(Trabant.graph,map) :: Trabant.graph
+  @doc "get b vertices from edge" 
   defcallback inV(Trabant.graph,Trabant.key) :: Trabant.graph
+  @doc "get b vertices from match map"
+  defcallback inV(Trabant.graph,map) :: Trabant.graph
   defcallback create_v(Trabant.graph,any,any) :: :ok
   @doc "get all neighbors by out going edges"
   defcallback out(Trabant.graph) :: Trabant.graph

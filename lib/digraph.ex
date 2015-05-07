@@ -45,6 +45,7 @@ defmodule Digraph do
     {pointer,a,b,label} = :digraph.edge(graph_pointer,pointer)
     %Trabant.E{pointer: pointer,a: a, b: b, label: label}
   end
+  @doc "get out neighbours"
   def out(graph) do
     stream = Stream.map(graph.stream,fn(vertex) ->
       :digraph.out_neighbours(graph.g,vertex)
@@ -94,7 +95,22 @@ defmodule Digraph do
     end)
     Map.put(graph,:stream,stream)
   end
-  def inV(graph,key) do
+  @doc "get in neighbours" 
+  def inn(graph) do
+    stream = Stream.flat_map(graph.stream,fn(vertex) ->
+      :digraph.in_neighbours(graph.g,vertex)
+    end)
+  end
+  @doc "get all inbound vertices from edge"
+  def inV(graph) do
+    stream = Stream.map(graph.stream,fn(edge_pointer) ->
+      edge = e(graph.g,edge_pointer)
+      edge.b
+    end)
+    Map.put(graph,:stream,stream)
+  end
+  @doc "get vertices with matching key, expects list of edges from graph.stream"
+  def inV(graph,key) when is_atom(key) do
     stream = Stream.map(graph.stream,fn(edge) ->
       IO.inspect edge
       {e,a,b,label} = :digraph.edge(graph.g,edge)

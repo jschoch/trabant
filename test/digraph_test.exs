@@ -81,10 +81,9 @@ defmodule DigraphTest do
   end
   test "vertex lookups" do
     graph = Hel.createDi
+    alcmene = %{age: 45, id: 9, name: "Alcmene", type: :human}
 
     # get vertex via term
-
-    alcmene = %{age: 45, id: 9, name: "Alcmene", type: :human}
     updated_graph = v(graph,alcmene)
     assert match? %Trabant.G{}, updated_graph
     res = res(updated_graph)
@@ -95,6 +94,22 @@ defmodule DigraphTest do
 
     result = graph |> v_id(9) |> res
     assert res.data == [alcmene]
+  end
+  test "inV works" do
+    graph = Hel.createDi
+    alcmene = graph |> v_id(9)
+    jupiter = graph |> v_id(2)
+
+    #should be the same as out()
+    result = graph |> v_id(2) |> outE |> inV |> res
+    assert result.count == 100, "wrong count #{inspect result}"
+
+    # test map match
+    result = graph |> v_id(2) |> outE(%{type: :god}) |> inV |> res
+    assert result.count == 100, "wrong count #{inspect result}"
+  end
+  test "in works" do
+    assert false, "TODO: get in tests working, inn(), inn(match_map), inn(where_map)"
   end
   test "where works" do
     # graph |> v(where: {:age,:gt,10})
