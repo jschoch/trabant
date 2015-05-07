@@ -17,9 +17,6 @@ defmodule DigraphTest do
     create_v(graph,m)
     create_v(graph,m2)
     create_v(graph,m3)
-    r = graph |> v(m)
-    assert r != nil
-    assert r.v == m, "wrong result #{inspect r.v}"
     edge_label = %{type: :foo}
     e = add_edge(graph,m,m2,edge_label)
     e2 = add_edge(graph,m,m2,%{type: :bar})
@@ -28,32 +25,74 @@ defmodule DigraphTest do
     e5 = add_edge(graph,m3,m,%{lbl: :back_at_you})
     assert e != nil
     assert e == :ok, "wrong result #{inspect e}"
-    outE_result = outE(graph,r.v)
-    assert match?( %Trabant.G{} , outE_result),"wrong result #{inspect outE_result}"
-    assert Enum.count(outE_result.stream) == 4, "wrong result #{inspect outE_result}"
-    c = outE(graph,r.v)|> res
-    assert c.count == 4, "wrong result #{inspect outE_result}"
-    chain_result = graph |> outE(r.v,:lbl) |> inV(:name) |> res
+  
+    # test get vertex by term
+  
+    result = graph |> v(m) |> res
+    [vertex] = result.data
+    assert vertex != nil
+    assert vertex == m, "wrong result #{inspect vertex}"
+
+    # test get out edges for single vertex
+
+    outE_result = graph |> v(vertex) |> outE() |> res
+    assert match?( %Trabant.G{} , outE_result.graph),"bad match wrong result #{inspect outE_result}"
+    assert outE_result.count == 4, "wrong count for #{inspect outE_result}\n\n#{inspect Enum.to_list(outE_result.graph.stream)}"
+
+    # test count
+
+    c = graph |> v(vertex) |> outE |> res
+    assert c.count == 4, "wrong result #{inspect c}"
+    
+    # test outE with key
+
+    chain_result = graph |> v(vertex) |> outE(:lbl) |> res
+    assert chain_result.count == 2, "wrong result #{inspect chain_result}"
+    
+    # test basic traversal 
+
+    chain_result = graph |> v(vertex) |> outE(:lbl) |> inV(:name) |> res
     assert chain_result.data == [%{name: "Biff"}], "wrong result #{inspect chain_result}"
 
   
     # test if map match filter works on outE
 
-    map_match_result = graph |> outE(r.v,edge_label) |> res
+    map_match_result = graph |> outE(vertex,edge_label) |> res
     [map] = map_match_result.data
     assert map.label == edge_label, "wrong result #{inspect map_match_result}"
 
     # test if bad match returns []
 
-    map_match_result = graph |> outE(r.v,%{nope: :nada}) |> res
+    map_match_result = graph |> outE(vertex,%{nope: :nada}) |> res
     assert map_match_result.data == [], "wrong result #{inspect map_match_result}"
   
-    chain_result = graph |> outE(r.v,:lbl) |> inV(:nick) |> res
+    chain_result = graph |> v(m) |> outE(:lbl) |> inV(:nick) |> res
     assert chain_result.data == [%{nick: "Brock"}], "wrong result #{inspect chain_result}"
-    back_to_m = chain_result.graph |> outE(:lbl)
-    [sub_stream] = Enum.to_list(back_to_m.stream)
-    enum = Enum.to_list(sub_stream.stream)
-    assert enum == [m],"wrong result #{inspect enum}"
+    
+    # test re-use stream
+
+    result = chain_result.graph |> outE(:lbl) |> res
+    [edge_pointer] = result.data
+    edge = e(graph.g,edge_pointer)
+    assert match?( %Trabant.E{},edge),"bad match \n\tedge: #{inspect edge} \n\tresult: #{inspect result}"
+    assert edge.label == %{lbl: :back_at_you},"wrong result #{inspect edge} #{inspect e5}"
+  end
+  test "vertex lookups" do
+    graph = Hel.createDi
+
+    # get vertex via term
+
+    alcmene = %{age: 45, id: 9, name: "Alcmene", type: :human}
+    updated_graph = v(graph,alcmene)
+    assert match? %Trabant.G{}, updated_graph
+    res = res(updated_graph)
+    assert res.count == 1, "wrong count for #{inspect res}"
+    assert res.data == [alcmene]
+    
+    # lookup by id index
+
+    result = graph |> v_id(9) |> res
+    assert res.data == [alcmene]
   end
   test "where works" do
     # graph |> v(where: {:age,:gt,10})

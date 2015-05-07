@@ -1,9 +1,9 @@
 defmodule Trabant do
-  @type graph :: %{g: {atom,any,any,any,boolean},md: %{},sub: %{nodes: list, edges: list}}
+  @type graph :: %{g: {atom,any,any,any,boolean},md: %{},sub: %{nodes: list, edges: list},stream: list}
   @type key :: String.t | atom
 end
 defmodule Trabant.G do
-  defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 0,trace: false
+  defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 0,trace: false,stream: []
 end
 defmodule Trabant.R do
   defstruct count: 0, data: [],graph: nil
