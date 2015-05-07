@@ -55,4 +55,18 @@ defmodule DigraphTest do
     enum = Enum.to_list(sub_stream.stream)
     assert enum == [m],"wrong result #{inspect enum}"
   end
+  test "where works" do
+    # graph |> v(where: {:age,:gt,10})
+    assert false, "need to get where working"
+  end
+  test "limit works" do
+    # graph |> v(:foo) |> outE(limit: 2)
+    assert false, "get limit working" 
+  end
+  test "lookups by index work" do
+    assert false, " make sure v_id, and create_v work with our special :index_id"
+    assert false, " make sure we can't use special :index_id attribute and we throw a sane message on error"
+    assert false, "think about id's and if we should pass around whole maps vs just ids, or how to make this optional?"
+  end
 end
+  

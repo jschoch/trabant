@@ -11,16 +11,38 @@ defmodule Digraph do
     g = :digraph.new
     %Trabant.G{g: g}
   end
-  def v(graph,opts) do
-    {vertex,label} = :digraph.vertex(graph.g,opts)
+  def v_id(graph,id) do
+    graph |> v(%{id_index: id}) |> out
+  end
+  def v(graph,term) do
+    {vertex,label} = :digraph.vertex(graph.g,term)
     Map.put(graph,:v,vertex)
+  end
+  def add_edge(graph,{a,b,label}) do
+    add_edge(graph,a,b,label)
   end
   def add_edge(graph,a,b,label) do
     r = :digraph.add_edge(graph.g,a,b,label)
     :ok
   end
   def create_v(graph,term,label \\[]) do
-    r = :digraph.add_vertex(graph.g,term)
+    case Map.has_key?(term,:id) do
+      true -> 
+        index = %{id_index: term.id}
+        :digraph.add_vertex(graph.g,index)
+        :digraph.add_vertex(graph.g,term)
+        add_edge(graph,index,term,:index)
+      false ->
+        r = :digraph.add_vertex(graph.g,term)
+    end
+  end
+  def mmatch(target,test) do
+    #%{foo: :foo,bar: :bar} |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in %{foo: :foo} end)
+    #Enum.all?(map, &Enum.member?(%{foo: :foo, bar: :bar), &1))
+    test |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in target end)
+  end
+  def out(graph) do
+    :digraph.out_neighgours(graph.g,graph.v)
   end
   def outE(graph,label) when is_atom(label) do
     IO.puts "unf"
@@ -29,11 +51,6 @@ defmodule Digraph do
       outE(graph,vertex)
     end)
     Map.put(graph,:stream,stream)
-  end
-  def mmatch(target,test) do
-    #%{foo: :foo,bar: :bar} |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in %{foo: :foo} end)
-    #Enum.all?(map, &Enum.member?(%{foo: :foo, bar: :bar), &1))
-    test |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in target end)
   end
   def outE(%Trabant.G{} = graph,v, map) when is_map(map) do
     edges = :digraph.out_edges(graph.g,v)
