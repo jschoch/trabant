@@ -3,7 +3,7 @@ defmodule Trabant do
   @type key :: String.t | atom
 end
 defmodule Trabant.G do
-  defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 0,trace: false,stream: []
+  defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 1,trace: false,stream: []
 end
 defmodule Trabant.R do
   defstruct count: 0, data: [],graph: nil
@@ -17,7 +17,11 @@ defmodule Trabant.B do
   defcallback res(Trabant.graph) :: list
   defcallback new(String.t) :: Trabant.graph
   defcallback add_edge(Trabant.graph,any,any,any) :: :ok
+  @doc "get a single vertex"
   defcallback v(Trabant.graph,any) :: any
+  @doc "get all vertices"
+  defcallback all_v(Trabant.graph) :: Trabant.graph
+  @doc "get a single edge"
   defcallback e(Trabant.graph,any) :: %{pointer: list,a: any,b: any,label: any}
   @doc "get all out edges for list of vertices from graph.stream"
   defcallback outE(Trabant.graph) :: Trabant.graph
@@ -40,8 +44,14 @@ defmodule Trabant.B do
   defcallback out(Trabant.graph) :: Trabant.graph
   @doc "get out neighbors with matching key/value pairs from map arg, expects list of vertices from graph.stream"
   defcallback out(Trabant.graph,Trabant.key) :: Trabant.graph
+  @doc "sort a list"
+  defcallback sort(Trabant.graph) :: Trabant.sort
   @doc "convenience for take(1)"
   defcallback first(Trabant.graph) :: any
   @doc "convenience for res.data"
   defcallback data(Trabant.graph) :: list
+  @doc "convenience for limit" 
+  defcallback limit(Trabant.graph) :: Trabant.graph
+  @doc "convenience for limit, overrides graph.limit"
+  defcallback limit(Trabant.graph,integer) :: Trabant.graph
 end

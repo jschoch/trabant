@@ -102,11 +102,11 @@ defmodule DigraphTest do
 
     #should be the same as out()
     result = graph |> v_id(2) |> outE |> inV |> res
-    assert result.count == 100, "wrong count #{inspect result}"
+    assert result.count == 3, "wrong count #{inspect result}"
 
     # test map match
-    result = graph |> v_id(2) |> outE(%{type: :god}) |> inV |> res
-    assert result.count == 100, "wrong count #{inspect result}"
+    result = graph |> v_id(2) |> outE(%{relation: :brother}) |> inV |> res
+    assert result.count == 1, "wrong count #{inspect result}"
   end
   test "can't use :index_id for vertex" do
     graph = new("foo")
@@ -128,8 +128,29 @@ defmodule DigraphTest do
     [first_v] = graph |> v_id(2) |> out |> first |> data
     assert first_v == pluto, "wrong result #{inspect first_v}"
   end
-  test "in works" do
-    assert false, "TODO: get in tests working, inn(), inn(match_map), inn(where_map)"
+  test "limit works" do
+    graph = new
+    Enum.each(1..100,&(create_v(graph,%{id: &1})))
+    result = graph |> all_v |> limit(2) |> res
+    assert result.count == 2 
+  end
+  test "sort works" do
+    graph = new
+    Enum.each(1..100,&(create_v(graph,%{id: &1})))
+    result = graph |> all_v |> sort |>  limit(2) |> res
+    assert result.count == 2
+  end
+  test "inn works" do
+    graph = Hel.createDi
+    [alcmene] = graph |> v_id(9) |> data
+    [jupiter] = graph |> v_id(2) |> data
+    [pluto] = graph |> v_id(10) |> data
+
+    ins = graph |> v_id(2) |> inn |> data
+    ids = Enum.filter_map(ins,&(&1.id in [10,5]),&(&1.id))
+    assert ids == [10,5], "doh! #{inspect ids}" 
+    [herc] = graph |> v_id(2) |> inn(%{type: :demigod}) |> data
+    assert herc.id == 5
   end
   test "where works" do
     # graph |> v(where: {:age,:gt,10})
