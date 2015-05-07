@@ -40,4 +40,8 @@ defmodule Trabant.B do
   defcallback out(Trabant.graph) :: Trabant.graph
   @doc "get out neighbors with matching key/value pairs from map arg, expects list of vertices from graph.stream"
   defcallback out(Trabant.graph,Trabant.key) :: Trabant.graph
+  @doc "convenience for take(1)"
+  defcallback first(Trabant.graph) :: any
+  @doc "convenience for res.data"
+  defcallback data(Trabant.graph) :: list
 end

@@ -97,8 +97,8 @@ defmodule DigraphTest do
   end
   test "inV works" do
     graph = Hel.createDi
-    alcmene = graph |> v_id(9)
-    jupiter = graph |> v_id(2)
+    [alcmene] = graph |> v_id(9) |> data
+    [jupiter] = graph |> v_id(2) |> data
 
     #should be the same as out()
     result = graph |> v_id(2) |> outE |> inV |> res
@@ -107,6 +107,26 @@ defmodule DigraphTest do
     # test map match
     result = graph |> v_id(2) |> outE(%{type: :god}) |> inV |> res
     assert result.count == 100, "wrong count #{inspect result}"
+  end
+  test "can't use :index_id for vertex" do
+    graph = new("foo")
+    assert_raise(RuntimeError,fn ->
+      create_v(graph,%{index_id: 1})
+    end)
+  end
+  test "data conenience works" do
+    graph = Hel.createDi
+    [alcmene] = graph |> v_id(9) |> data
+    assert is_map(alcmene), "doh! #{inspect alcmene}"
+  end
+  test "first works" do
+    graph = Hel.createDi
+    [alcmene] = graph |> v_id(9) |> data
+    [jupiter] = graph |> v_id(2) |> data
+    [pluto] = graph |> v_id(10) |> data
+
+    [first_v] = graph |> v_id(2) |> out |> first |> data
+    assert first_v == pluto, "wrong result #{inspect first_v}"
   end
   test "in works" do
     assert false, "TODO: get in tests working, inn(), inn(match_map), inn(where_map)"
@@ -119,9 +139,7 @@ defmodule DigraphTest do
     # graph |> v(:foo) |> outE(limit: 2)
     assert false, "TODO: get limit working" 
   end
-  test "lookups by index work" do
-    assert false, "TODO:  make sure v_id, and create_v work with our special :index_id"
-    assert false, "TODO:  make sure we can't use special :index_id attribute and we throw a sane message on error"
+  test "TODOs" do
     assert false, "TODO: think about id's and if we should pass around whole maps vs just ids, or how to make this optional?"
   end
 end

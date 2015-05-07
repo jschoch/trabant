@@ -26,6 +26,10 @@ defmodule Digraph do
     :ok
   end
   def create_v(graph,term,label \\[]) do
+    case Map.has_key?(term,:index_id) do
+      true -> raise "#{__MODULE__} can't use :index_id key in a vertex"
+      false -> nil
+    end
     case Map.has_key?(term,:id) do
       true -> 
         index = %{id_index: term.id}
@@ -47,7 +51,7 @@ defmodule Digraph do
   end
   @doc "get out neighbours"
   def out(graph) do
-    stream = Stream.map(graph.stream,fn(vertex) ->
+    stream = Stream.flat_map(graph.stream,fn(vertex) ->
       :digraph.out_neighbours(graph.g,vertex)
     end)
     Map.put(graph,:stream,stream)
@@ -122,6 +126,15 @@ defmodule Digraph do
       end
     end)
     stream = Stream.filter(stream,&(&1 != nil))
+    Map.put(graph,:stream,stream)
+  end
+  @doc "get res().data"
+  def data(graph) do
+    #Logger.debug inspect res(graph)
+    res(graph).data
+  end
+  def first(graph) do
+    stream = Stream.take(graph.stream,1)
     Map.put(graph,:stream,stream)
   end
 end
