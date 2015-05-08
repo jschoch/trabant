@@ -27,6 +27,9 @@ defmodule Trabant.Mixfile do
   #
   # Type `mix help deps` for more examples and options
   defp deps do
-    [ {:zdb, github: "jschoch/zdb",branch: "v0.1.0"}]
+    [ 
+    {:zdb, github: "jschoch/zdb",branch: "v0.1.0"},
+    {:benchmark,github: "mzruya/elixir-benchmark"}
+    ]
   end
 end

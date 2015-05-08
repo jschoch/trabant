@@ -38,4 +38,16 @@ defmodule Hel do
     Enum.each(edges, &(add_edge(g,&1)))
     g
   end
+  def veryBig() do
+    g = new
+    Enum.each(1..100,&(create_v(g,%{id: &1,type: :user})))
+    Enum.each(1..50,fn(id) ->
+      Enum.each(1..1000,fn(x) ->
+        random_id = :random.uniform(10000000) * x
+        v = %{id: random_id,type: :image}
+        create_child(g,%{id: id, child: v,label: :image})
+      end)
+    end)
+    g
+  end
 end

@@ -108,6 +108,15 @@ defmodule DigraphTest do
     result = graph |> v_id(2) |> outE(%{relation: :brother}) |> inV |> res
     assert result.count == 1, "wrong count #{inspect result}"
   end
+  test "create_child works" do
+    graph = new
+    source = %{id: 1}
+    create_v(graph,source)
+    v = %{id: 2}
+    create_child(graph,%{id: source.id,child: v,label: :test})
+    [got] = graph |> v_id(2) |> data
+    assert v == got
+  end
   test "can't use :index_id for vertex" do
     graph = new("foo")
     assert_raise(RuntimeError,fn ->
@@ -159,6 +168,9 @@ defmodule DigraphTest do
   test "limit works" do
     # graph |> v(:foo) |> outE(limit: 2)
     assert false, "TODO: get limit working" 
+  end
+  test "[] handled correctly in chain" do
+    assert false,"TODO: if stream == [] what is the right thing to do?  should all tests return [] if the stream []"
   end
   test "TODOs" do
     assert false, "TODO: think about id's and if we should pass around whole maps vs just ids, or how to make this optional?"

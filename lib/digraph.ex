@@ -19,8 +19,11 @@ defmodule Digraph do
     graph |> v(%{id_index: id}) |> out
   end
   def v(graph,term) do
-    {vertex,label} = :digraph.vertex(graph.g,term)
-    Map.put(graph,:stream,[vertex])
+    case :digraph.vertex(graph.g,term) do
+      false -> v = [] 
+      {vertex,label} -> v = [vertex] #= :digraph.vertex(graph.g,term)
+    end
+    Map.put(graph,:stream,v)
   end
   def all_v(graph) do
     all = :digraph.vertices(graph.g) |> Enum.filter(&(!Map.has_key?(&1,:id_index)))
@@ -47,6 +50,11 @@ defmodule Digraph do
       false ->
         r = :digraph.add_vertex(graph.g,term)
     end
+  end
+  def create_child(graph, opts) when is_map(opts) do
+    [source] = v_id(graph,opts.id) |> data 
+    create_v(graph,opts.child)
+    add_edge(graph,source,opts.child,opts.label)
   end
   def mmatch(target,test) do
     #%{foo: :foo,bar: :bar} |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in %{foo: :foo} end)
