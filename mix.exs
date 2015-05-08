@@ -14,7 +14,7 @@ defmodule Trabant.Mixfile do
   #
   # Type `mix help compile.app` for more information
   def application do
-    [applications: [:logger,:erlcloud]]
+    [applications: [:logger,:httpoison]]
   end
 
   # Dependencies can be Hex packages:
@@ -28,8 +28,11 @@ defmodule Trabant.Mixfile do
   # Type `mix help deps` for more examples and options
   defp deps do
     [ 
-    {:zdb, github: "jschoch/zdb",branch: "v0.1.0"},
-    {:benchmark,github: "mzruya/elixir-benchmark"}
+    #{:zdb, github: "jschoch/zdb",branch: "v0.1.0"},
+    {:benchmark,github: "mzruya/elixir-benchmark"},
+    {:ex_aws,"~> 0.0.5"},
+    {:httpoison, "~> 0.6.2"},
+    {:poison, "~> 1.4.0"}
     ]
   end
 end

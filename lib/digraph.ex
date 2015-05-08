@@ -72,6 +72,9 @@ defmodule Digraph do
     end)
     Map.put(graph,:stream,stream)
   end
+  def out(graph,key) when is_atom(key) do
+    raise "not done yet"
+  end
   @doc "get out edges, expects a list of vertexes from graph.stream"
   def outE(%Trabant.G{} = graph) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->

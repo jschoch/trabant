@@ -1,5 +1,5 @@
 defmodule Trabant do
-  @type graph :: %{g: {atom,any,any,any,boolean},md: %{},sub: %{nodes: list, edges: list},stream: list}
+  @type graph :: %{g: {Atom,any,any,any,boolean},md: %{},sub: %{nodes: list, edges: list},stream: list}
   @type key :: String.t | atom
 end
 defmodule Trabant.G do
@@ -14,7 +14,7 @@ end
 
 defmodule Trabant.B do
   use Behaviour
-  defcallback res(Trabant.graph) :: list
+  defcallback res(Trabant.graph) :: List
   defcallback new(String.t) :: Trabant.graph
   defcallback add_edge(Trabant.graph,any,any,any) :: :ok
   @doc "get a single vertex"
@@ -22,7 +22,7 @@ defmodule Trabant.B do
   @doc "get all vertices"
   defcallback all_v(Trabant.graph) :: Trabant.graph
   @doc "get a single edge"
-  defcallback e(Trabant.graph,any) :: %{pointer: list,a: any,b: any,label: any}
+  defcallback e(Trabant.graph,any) :: %{pointer: List,a: any,b: any,label: any}
   @doc "get all out edges for list of vertices from graph.stream"
   defcallback outE(Trabant.graph) :: Trabant.graph
   @doc "get out edges with matching key"
@@ -49,7 +49,7 @@ defmodule Trabant.B do
   @doc "convenience for take(1)"
   defcallback first(Trabant.graph) :: any
   @doc "convenience for res.data"
-  defcallback data(Trabant.graph) :: list
+  defcallback data(Trabant.graph) :: List
   @doc "convenience for limit" 
   defcallback limit(Trabant.graph) :: Trabant.graph
   @doc "convenience for limit, overrides graph.limit"
