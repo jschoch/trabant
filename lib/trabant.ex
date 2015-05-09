@@ -1,6 +1,45 @@
 defmodule Trabant do
   @type graph :: %{g: {Atom,any,any,any,boolean},md: %{},sub: %{nodes: list, edges: list},stream: list}
   @type key :: String.t | atom
+  @silly 1
+  use Application
+  def start(_type,_args) do
+    Trabant.Super.start_link(backend)
+  end
+  def backend() do
+    Application.get_env(__MODULE__,:backend)
+  end
+  def backend(new) do
+    Application.stop(:trabant)
+    Application.put_env(__MODULE__,:backend,new)
+    Trabant.Super.start_link(new)
+  end
+  def silly do
+    @silly 
+  end
+  def data(graph) do
+    #Logger.debug inspect res(graph)
+    res(graph).data
+  end
+  def first(graph) do
+    stream = Stream.take(graph.stream,1)
+    Map.put(graph,:stream,stream)
+  end
+  @doc "sort by id by default"
+  def sort(graph) do
+    #stream = Stream.flat_map(graph.stream,&(Enum.sort(I#))
+    Logger.warn "sort will enumerate the whole stream"
+    sorted = Enum.to_list(graph.stream) |> Enum.sort(&(&1.id < &2.id))
+    Map.put(graph,:stream,sorted)
+  end
+  def limit(graph) do
+    stream = Stream.take(graph.stream,graph.limit)
+    Map.put(graph,:stream,stream)
+  end
+  def limit(graph,limit) do
+    stream = Stream.take(graph.stream,limit)
+    Map.put(graph,:stream,stream)
+  end
 end
 defmodule Trabant.G do
   defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 1,trace: false,stream: []
