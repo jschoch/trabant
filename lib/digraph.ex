@@ -1,19 +1,16 @@
 defmodule Digraph do
   @behaviour Trabant.B
   require Logger
-  @doc "process stream result into enum, collect md and counts etc"
-  def res(%Trabant.G{} = graph) do
-    Enum.reduce(graph.stream,%Trabant.R{graph: graph},fn(i,acc) -> 
-      acc = Map.put(acc,:count,acc.count + 1)
-      Map.put(acc,:data,[i|acc.data])
-    end)
-  end
   def new() do
     new("")
   end
   def new(s) do
     g = :digraph.new
     %Trabant.G{g: g}
+  end
+  def delete_graph() do
+    Logger.warn "not really sure how to do this with digraph, for tests i don't have the name of the ETS tables to recreate the 'G' structure"
+    :ok
   end
   def v_id(graph,id) do
     graph |> v(%{id_index: id}) |> out
@@ -50,16 +47,6 @@ defmodule Digraph do
       false ->
         r = :digraph.add_vertex(graph.g,term)
     end
-  end
-  def create_child(graph, opts) when is_map(opts) do
-    [source] = v_id(graph,opts.id) |> data 
-    create_v(graph,opts.child)
-    add_edge(graph,source,opts.child,opts.label)
-  end
-  def mmatch(target,test) do
-    #%{foo: :foo,bar: :bar} |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in %{foo: :foo} end)
-    #Enum.all?(map, &Enum.member?(%{foo: :foo, bar: :bar), &1))
-    test |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in target end)
   end
   def e(graph_pointer,pointer) do
     {pointer,a,b,label} = :digraph.edge(graph_pointer,pointer)
@@ -102,7 +89,7 @@ defmodule Digraph do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
       edges = :digraph.out_edges(graph.g,vertex)
       #Logger.debug "outE/2map edges #{inspect edges}"
-      stream = Stream.map(edges,fn(edge_pointer) ->
+      stream = Stream.filter(edges,fn(edge_pointer) ->
         edge = e(graph.g,edge_pointer) 
         case mmatch(edge.label,map) do
           true -> 
@@ -113,7 +100,7 @@ defmodule Digraph do
           false -> nil
         end
       end)
-      Stream.filter(stream,&(&1 != nil))
+      #Stream.filter(stream,&(&1 != nil))
     end)
     Map.put(graph,:stream,stream)
   end
@@ -131,7 +118,7 @@ defmodule Digraph do
     end)
     Map.put(graph,:stream,stream)
   end
-  @doc "get all inbound vertices from edge"
+  @doc "get all inbound vertices from edge, expects a list of edges in the stream"
   def inV(graph) do
     stream = Stream.map(graph.stream,fn(edge_pointer) ->
       edge = e(graph.g,edge_pointer)
@@ -153,28 +140,19 @@ defmodule Digraph do
     stream = Stream.filter(stream,&(&1 != nil))
     Map.put(graph,:stream,stream)
   end
-  @doc "get res().data"
-  def data(graph) do
-    #Logger.debug inspect res(graph)
-    res(graph).data
-  end
-  def first(graph) do
-    stream = Stream.take(graph.stream,1)
-    Map.put(graph,:stream,stream)
-  end
+  defdelegate data(graph), to: Trabant
+  defdelegate first(graph), to: Trabant
+  defdelegate limit(graph), to: Trabant
+  defdelegate limit(graph,limit), to: Trabant
+  defdelegate res(graph), to: Trabant
+  defdelegate mmatch(target,test), to: Trabant
+  defdelegate create_child(graph,opts), to: Trabant
+
   @doc "sort by id by default"
   def sort(graph) do
     #stream = Stream.flat_map(graph.stream,&(Enum.sort(I#))
     Logger.warn "sort will enumerate the whole stream"
     sorted = Enum.to_list(graph.stream) |> Enum.sort(&(&1.id < &2.id))
     Map.put(graph,:stream,sorted) 
-  end
-  def limit(graph) do
-    stream = Stream.take(graph.stream,graph.limit)
-    Map.put(graph,:stream,stream)
-  end
-  def limit(graph,limit) do
-    stream = Stream.take(graph.stream,limit)
-    Map.put(graph,:stream,stream)
   end
 end

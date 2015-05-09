@@ -1,19 +1,19 @@
 defmodule DigraphTest do
   use ExUnit.Case
   
-  setup do
-    #if (Mix.env != :prod) do
-      #Zdb.delete_table("graph",:no_raise)
-      #Zdb.create("graph")
-    #end
+  setup_all do
+    Trabant.backend(Ddb)
+    Trabant.delete_graph
+    #Trabant.backend(Digraph)
+    #Trabant.backend(Mdigraph)
     :ok
   end
-  import Digraph 
+  import Trabant
   test "basic digraph stuff works" do
     graph = new("graph")
-    m = %{name: "Bob"}
-    m2 = %{name: "Biff"}
-    m3 = %{nick: "Brock"}
+    m = %{id: "1",name: "Bob",r: "a"}
+    m2 = %{id: "2",name: "Biff",r: "a"}
+    m3 = %{id: "3",nick: "Brock",r: "a"}
     create_v(graph,m)
     create_v(graph,m2)
     create_v(graph,m3)
@@ -24,35 +24,54 @@ defmodule DigraphTest do
     e4 = add_edge(graph,m,m3,%{lbl: :unf})
     e5 = add_edge(graph,m3,m,%{lbl: :back_at_you})
     assert e != nil
-    assert e == :ok, "wrong result #{inspect e}"
+    #assert e == :ok, "wrong result #{inspect e}"
   
     # test get vertex by term
   
     result = graph |> v(m) |> res
     [vertex] = result.data
     assert vertex != nil
-    assert vertex == m, "wrong result #{inspect vertex}"
+    assert vertex.id == m.id, "wrong result #{inspect vertex}"
+
+    # test outE
+
+    c = graph
+      |> v(vertex)
+      |> outE
+
+    IO.puts "edge pointers:!!!! \n\t#{inspect(c.stream |> Enum.to_list)}"
+    lst = c.stream |> Enum.to_list
+    assert Enum.count(lst) == 4, "outE borked #{inspect lst}\n\t#{inspect c}"
+
+    # test count
+
+    c = graph 
+      |> v(vertex) 
+      |> outE 
+      |> res
+    assert c.count == 4, "wrong result #{inspect c}"
+
 
     # test get out edges for single vertex
 
     outE_result = graph |> v(vertex) |> outE() |> res
     assert match?( %Trabant.G{} , outE_result.graph),"bad match wrong result #{inspect outE_result}"
-    assert outE_result.count == 4, "wrong count for #{inspect outE_result}\n\n#{inspect Enum.to_list(outE_result.graph.stream)}"
+    assert outE_result.count == 4, "wrong count for #{inspect outE_result.data}\n\n#{inspect Enum.to_list(outE_result.graph.stream)}"
 
-    # test count
-
-    c = graph |> v(vertex) |> outE |> res
-    assert c.count == 4, "wrong result #{inspect c}"
     
     # test outE with key
 
-    chain_result = graph |> v(vertex) |> outE(:lbl) |> res
+    result = graph 
+      |> v(vertex) 
+      |> outE(:lbl) 
+    IO.puts inspect "RESULT " <> inspect result
+    chain_result = res(result)
     assert chain_result.count == 2, "wrong result #{inspect chain_result}"
     
     # test basic traversal 
 
     chain_result = graph |> v(vertex) |> outE(:lbl) |> inV(:name) |> res
-    assert chain_result.data == [%{name: "Biff"}], "wrong result #{inspect chain_result}"
+    assert chain_result.data == [m2], "wrong result #{inspect chain_result}"
 
   
     # test if map match filter works on outE
@@ -69,7 +88,7 @@ defmodule DigraphTest do
     assert map_match_result.data == [], "wrong result #{inspect map_match_result}"
   
     chain_result = graph |> v(m) |> outE(:lbl) |> inV(:nick) |> res
-    assert chain_result.data == [%{nick: "Brock"}], "wrong result #{inspect chain_result}"
+    assert chain_result.data == [m3], "wrong result #{inspect chain_result}"
     
     # test re-use stream
 

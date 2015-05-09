@@ -1,0 +1,5 @@
+
+outE(g,atom_label) is driving me nutz, do I really need this?  There seems no way to query for item metadata like has_attribute_key?
+
+lots of hack accumulating, look at TODOs
+

@@ -2,6 +2,7 @@ defmodule Trabant do
   @type graph :: %{g: {Atom,any,any,any,boolean},md: %{},sub: %{nodes: list, edges: list},stream: list}
   @type key :: String.t | atom
   @silly 1
+  require Logger
   use Application
   def start(_type,_args) do
     Trabant.Super.start_link(backend)
@@ -17,6 +18,89 @@ defmodule Trabant do
   def silly do
     @silly 
   end
+  #
+  # calls to backends
+  #
+  def new do
+    Trabant.backend.new
+  end
+  def new(name) do
+    Trabant.backend.new(name)
+  end
+  def add_edge(graph,a,b,label) do
+    Trabant.backend.add_edge(graph,a,b,label)
+  end
+  def v(graph,map) do
+    Trabant.backend.v(graph,map)
+  end
+  def v_id(graph,id) do
+    Trabant.backend.v_id(graph,id)
+  end
+  def all_v(graph) do
+    Trabant.backend.all_v(graph)
+  end
+  def e(graph,pointer) do
+    Trabant.backend.e(graph,pointer)
+  end
+  def outE(graph) do
+    Trabant.backend.outE(graph)
+  end
+  def outE(graph,atom) do
+    Trabant.backend.outE(graph,atom)
+  end
+  def outE(graph,map) do
+    Trabant.backend.outE(graph,map)
+  end
+  def inn(graph) do
+    Trabant.backend.inn(graph)
+  end
+  def inn(graph,vertex)do
+    Trabant.backend.inn(graph,vertex)
+  end
+  def inn(graph,vertex,where)do
+    Trabant.backend.inn(graph,vertex,where)
+  end
+  def inV(graph) do
+    Trabant.backend.inV(graph)
+  end
+  def inV(graph,atom) do
+    Trabant.backend.inV(graph,atom)
+  end
+  def inV(graph,map) do
+    Trabant.backend.inV(graph,map)
+  end
+  def out(graph) do
+    Trabant.backend.out(graph)
+  end
+  def out(graph,vertex)do
+    Trabant.backend.out(graph,vertex)
+  end
+  def create_v(graph,vertex, label \\[]) do
+    Trabant.backend.create_v(graph,vertex, label)
+  end
+  def delete_graph() do
+    Trabant.backend.delete_graph()
+  end
+
+  #
+  # delegates
+  #
+
+  @doc "looks for all key/val pairs in test in target, returns true if they all match"
+  def mmatch(target,test) do
+    #%{foo: :foo,bar: :bar} |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in %{foo: :foo} end)
+    #Enum.all?(map, &Enum.member?(%{foo: :foo, bar: :bar), &1))
+    test |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in target end)
+  end
+  @doc "process stream result into enum, collect md and counts etc"
+  def res(%Trabant.G{} = graph) do
+    #Logger.debug "res graph: #{inspect graph.stream |> Enum.to_list}"
+    Enum.reduce(graph.stream,%Trabant.R{graph: graph},fn(i,acc) ->
+      acc = Map.put(acc,:count,acc.count + 1)
+      Map.put(acc,:data,[i|acc.data])
+    end)
+  end
+  @doc "get res().data"
   def data(graph) do
     #Logger.debug inspect res(graph)
     res(graph).data
@@ -32,65 +116,21 @@ defmodule Trabant do
     sorted = Enum.to_list(graph.stream) |> Enum.sort(&(&1.id < &2.id))
     Map.put(graph,:stream,sorted)
   end
+  @doc "limits the total results, uses limit attribute of the graph"
   def limit(graph) do
     stream = Stream.take(graph.stream,graph.limit)
     Map.put(graph,:stream,stream)
   end
+  @doc "limits this part of the chain by the limit arg"
   def limit(graph,limit) do
     stream = Stream.take(graph.stream,limit)
     Map.put(graph,:stream,stream)
   end
-end
-defmodule Trabant.G do
-  defstruct g: nil,md: %{},sub: %{nodes: [], edges: []},limit: 1,trace: false,stream: []
-end
-defmodule Trabant.R do
-  defstruct count: 0, data: [],graph: nil
-end
-defmodule Trabant.E do
-  defstruct pointer: nil, a: nil, b: nil, label: nil
+  @doc "creates a vertex and links via edges"
+  def create_child(graph, opts) when is_map(opts) do
+    [source] = v_id(graph,opts.id) |> data
+    create_v(graph,opts.child)
+    add_edge(graph,source,opts.child,opts.label)
+  end
 end
 
-defmodule Trabant.B do
-  use Behaviour
-  defcallback res(Trabant.graph) :: List
-  defcallback new(String.t) :: Trabant.graph
-  defcallback add_edge(Trabant.graph,any,any,any) :: :ok
-  @doc "get a single vertex"
-  defcallback v(Trabant.graph,any) :: any
-  @doc "get all vertices"
-  defcallback all_v(Trabant.graph) :: Trabant.graph
-  @doc "get a single edge"
-  defcallback e(Trabant.graph,any) :: %{pointer: List,a: any,b: any,label: any}
-  @doc "get all out edges for list of vertices from graph.stream"
-  defcallback outE(Trabant.graph) :: Trabant.graph
-  @doc "get out edges with matching key"
-  defcallback outE(Trabant.graph,String.t|atom) :: Trabant.graph
-  @doc "get out edges with matching key/value pairs from map arg"
-  defcallback outE(Trabant.graph,Map) :: Trabant.graph
-  @doc "get in neighbours"
-  defcallback inn(Traban.graph) :: Trabant.graph
-  @doc "get in with map match"
-  defcallback inn(Trabant.graph,map) :: Trabant.graph
-  @doc "get in neighbours with where"
-  defcallback inn(Trabant.graph,map) :: Trabant.graph
-  @doc "get b vertices from edge" 
-  defcallback inV(Trabant.graph,Trabant.key) :: Trabant.graph
-  @doc "get b vertices from match map"
-  defcallback inV(Trabant.graph,map) :: Trabant.graph
-  defcallback create_v(Trabant.graph,any,any) :: :ok
-  @doc "get all neighbors by out going edges"
-  defcallback out(Trabant.graph) :: Trabant.graph
-  @doc "get out neighbors with matching key/value pairs from map arg, expects list of vertices from graph.stream"
-  defcallback out(Trabant.graph,Trabant.key) :: Trabant.graph
-  @doc "sort a list"
-  defcallback sort(Trabant.graph) :: Trabant.sort
-  @doc "convenience for take(1)"
-  defcallback first(Trabant.graph) :: any
-  @doc "convenience for res.data"
-  defcallback data(Trabant.graph) :: List
-  @doc "convenience for limit" 
-  defcallback limit(Trabant.graph) :: Trabant.graph
-  @doc "convenience for limit, overrides graph.limit"
-  defcallback limit(Trabant.graph,integer) :: Trabant.graph
-end
