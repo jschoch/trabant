@@ -3,7 +3,7 @@ Trabant
 
 ** naive graph traversal for erlang and some backends like digraph dynamodb and mdigraph
  
-* inspired by gremlin and pacer
+* inspired by [gremlin](https://github.com/tinkerpop/gremlin) and [pacer](https://github.com/xnlogic/pacer)
 
 
 
@@ -27,7 +27,7 @@ Trabant
     ins = graph |> v_id(2) 
       # in is used in Elixir.Kernel so we use inn
       |> inn 
-      # data is a shortcut for res(graph).data
+      # [data](https://github.com/jschoch/trebant/blob/master/lib/trabant.ex#L123-L126) is a shortcut for res(graph).data
       # it grabs graph.stream and process it
       |> data
 
