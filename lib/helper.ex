@@ -1,6 +1,6 @@
 defmodule Hel do
-  import Digraph
-  def createDi do
+  import Trabant
+  def createG do
     saturn = %{id: 1,name: "Saturn",age: 10000,type: :titan}
     jupiter = %{id: 2,name: "Jupiter", type: :god, age: 5000}
     sky = %{id: 3,name: "sky",type: :location}
@@ -18,6 +18,8 @@ defmodule Hel do
       jupiter,
       hercules,
       alcmene,
+      cerberus,
+      hydra,
       pluto,
       nemean
     ]
@@ -34,15 +36,16 @@ defmodule Hel do
       {hercules, cerberus,%{relation: :battled}}
     ]
     g = new("graph")
-    Enum.each(nodes, &(create_v(g,&1)))
-    Enum.each(edges, &(add_edge(g,&1)))
+    Enum.each(nodes, &(Trabant.create_v(g,&1)))
+    IO.puts inspect Trabant.all_v(g) |> data
+    Enum.each(edges, &(Trabant.add_edge(g,&1)))
     g
   end
   def veryBig() do
     g = new
-    Enum.each(1..100,&(create_v(g,%{id: &1,type: :user})))
-    Enum.each(1..50,fn(id) ->
-      Enum.each(1..1000,fn(x) ->
+    Enum.each(1..1000,&(create_v(g,%{id: &1,type: :user})))
+    Enum.each(1..100,fn(id) ->
+      Enum.each(1..10000,fn(x) ->
         random_id = :random.uniform(10000000) * x
         v = %{id: random_id,type: :image}
         create_child(g,%{id: id, child: v,label: :image})

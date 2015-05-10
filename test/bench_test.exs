@@ -1,6 +1,6 @@
 defmodule BenchesTest do
   require Benchmark
-  import Digraph
+  import Trabant
   use ExUnit.Case
   def start_agent do
     Agent.start_link(fn -> nil end,name: :foo) 
@@ -40,6 +40,7 @@ defmodule BenchesTest do
     bench2(g,10000,"in setup bench2")
     start_agent
     {timed,:ok} = :timer.tc(fn-> 
+      Trabant.backend(Mdigraph)
       g = Hel.veryBig 
       aput(g)
       :ok

@@ -3,7 +3,10 @@ defmodule Trabant.B do
   defcallback res(Trabant.graph) :: List
   defcallback new() :: Trabant.graph
   defcallback new(String.t) :: Trabant.graph
+  @doc "add an edge"
   defcallback add_edge(Trabant.graph,any,any,any) :: :ok
+  @doc "add an edge with 2 args"
+  defcallback add_edge(Trabant.graph,{any,any,any}) :: :ok
   @doc "get a single vertex"
   defcallback v(Trabant.graph,any) :: any
   @doc "get vertex by id"

@@ -1,16 +1,16 @@
-defmodule DigraphTest do
+defmodule BackendsTest do
   use ExUnit.Case
   
   setup_all do
-    Trabant.backend(Ddb)
-    Trabant.delete_graph
+    #Trabant.backend(Ddb)
     #Trabant.backend(Digraph)
-    #Trabant.backend(Mdigraph)
+    Trabant.backend(Mdigraph)
+    Trabant.delete_graph
     :ok
   end
   import Trabant
   test "basic digraph stuff works" do
-    graph = new("graph")
+    graph = Trabant.new("graph")
     m = %{id: "1",name: "Bob",r: "a"}
     m2 = %{id: "2",name: "Biff",r: "a"}
     m3 = %{id: "3",nick: "Brock",r: "a"}
@@ -99,7 +99,7 @@ defmodule DigraphTest do
     assert edge.label == %{lbl: :back_at_you},"wrong result #{inspect edge} #{inspect e5}"
   end
   test "vertex lookups" do
-    graph = Hel.createDi
+    graph = Hel.createG
     alcmene = %{age: 45, id: 9, name: "Alcmene", type: :human}
 
     # get vertex via term
@@ -115,7 +115,7 @@ defmodule DigraphTest do
     assert res.data == [alcmene]
   end
   test "inV works" do
-    graph = Hel.createDi
+    graph = Hel.createG
     [alcmene] = graph |> v_id(9) |> data
     [jupiter] = graph |> v_id(2) |> data
 
@@ -128,7 +128,7 @@ defmodule DigraphTest do
     assert result.count == 1, "wrong count #{inspect result}"
   end
   test "create_child works" do
-    graph = new
+    graph = Trabant.new
     source = %{id: 1}
     create_v(graph,source)
     v = %{id: 2}
@@ -137,18 +137,18 @@ defmodule DigraphTest do
     assert v == got
   end
   test "can't use :index_id for vertex" do
-    graph = new("foo")
+    graph = Trabant.new("foo")
     assert_raise(RuntimeError,fn ->
       create_v(graph,%{index_id: 1})
     end)
   end
   test "data conenience works" do
-    graph = Hel.createDi
+    graph = Hel.createG
     [alcmene] = graph |> v_id(9) |> data
     assert is_map(alcmene), "doh! #{inspect alcmene}"
   end
   test "first works" do
-    graph = Hel.createDi
+    graph = Hel.createG
     [alcmene] = graph |> v_id(9) |> data
     [jupiter] = graph |> v_id(2) |> data
     [pluto] = graph |> v_id(10) |> data
@@ -157,19 +157,19 @@ defmodule DigraphTest do
     assert first_v == pluto, "wrong result #{inspect first_v}"
   end
   test "limit works" do
-    graph = new
+    graph = Trabant.new
     Enum.each(1..100,&(create_v(graph,%{id: &1})))
     result = graph |> all_v |> limit(2) |> res
     assert result.count == 2 
   end
   test "sort works" do
-    graph = new
+    graph = Trabant.new
     Enum.each(1..100,&(create_v(graph,%{id: &1})))
     result = graph |> all_v |> sort |>  limit(2) |> res
     assert result.count == 2
   end
   test "inn works" do
-    graph = Hel.createDi
+    graph = Hel.createG
     [alcmene] = graph |> v_id(9) |> data
     [jupiter] = graph |> v_id(2) |> data
     [pluto] = graph |> v_id(10) |> data

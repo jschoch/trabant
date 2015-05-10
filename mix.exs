@@ -30,6 +30,7 @@ defmodule Trabant.Mixfile do
     [ 
     #{:zdb, github: "jschoch/zdb",branch: "v0.1.0"},
     {:benchmark,github: "mzruya/elixir-benchmark"},
+    {:mdigraph,git: "https://github.com/jschoch/erlang-mdigraph"},
     #{:ex_aws,"~> 0.0.5"},
     {:httpoison, "~> 0.6.2"},
     {:ex_aws,github: "CargoSense/ex_aws"},

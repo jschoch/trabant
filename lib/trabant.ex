@@ -5,7 +5,22 @@ defmodule Trabant do
   require Logger
   use Application
   def start(_type,_args) do
-    Trabant.Super.start_link(backend)
+    backend = backend()
+    Logger.info "starting backend: #{backend}"
+    case backend do
+      Mdigraph -> 
+        :mnesia.start
+        Trabant.Super.start_link(Mdigraph)
+      _ -> 
+        Trabant.Super.start_link(backend)
+    end
+  end
+  def stop do
+    case backend do
+      Mdigraph ->
+        :mnesia.stop
+      _ -> nil
+    end
   end
   def backend() do
     Application.get_env(__MODULE__,:backend)
@@ -13,7 +28,8 @@ defmodule Trabant do
   def backend(new) do
     Application.stop(:trabant)
     Application.put_env(__MODULE__,:backend,new)
-    Trabant.Super.start_link(new)
+    #Trabant.Super.start_link(new)
+    start(nil,nil)
   end
   def silly do
     @silly 
@@ -26,6 +42,9 @@ defmodule Trabant do
   end
   def new(name) do
     Trabant.backend.new(name)
+  end
+  def add_edge(graph,{a,b,label}) do
+    Trabant.backend.add_edge(graph,{a,b,label})
   end
   def add_edge(graph,a,b,label) do
     Trabant.backend.add_edge(graph,a,b,label)
