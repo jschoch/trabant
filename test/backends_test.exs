@@ -180,6 +180,13 @@ defmodule BackendsTest do
     [herc] = graph |> v_id(2) |> inn(%{type: :demigod}) |> data
     assert herc.id == 5
   end
+  test " graph() returns %Trabant.G{}" do
+    assert false, "TODO: implement graph() to retunr %Trabant.G"
+  end
+  test "update works" do
+    assert false, "TODO: implement update, use id_node for edges, and re-add_edge from id_node when we update the target node info"
+  end
+  
   test "where works" do
     # graph |> v(where: {:age,:gt,10})
     assert false, "TODO: need to get where working"
@@ -187,6 +194,9 @@ defmodule BackendsTest do
   test "limit works" do
     # graph |> v(:foo) |> outE(limit: 2)
     assert false, "TODO: get limit working" 
+  end
+  test "don't delete schema" do
+    assert false, "need to ensure we dont' delete schema, need a graph.init or something"
   end
   test "[] handled correctly in chain" do
     assert false,"TODO: if stream == [] what is the right thing to do?  should all tests return [] if the stream []"
