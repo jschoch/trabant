@@ -34,6 +34,7 @@ defmodule Trabant.B do
   @doc "get b vertices from match map"
   defcallback inV(Trabant.graph,map) :: Trabant.graph
   defcallback create_v(Trabant.graph,any,any) :: :ok
+  defcallback update_v(Trabant.graph,any) :: any
   @doc "get all neighbors by out going edges"
   defcallback out(Trabant.graph) :: Trabant.graph
   @doc "get out neighbors with matching key/value pairs from map arg, expects list of vertices from graph.stream"
@@ -48,5 +49,11 @@ defmodule Trabant.B do
   defcallback limit(Trabant.graph) :: Trabant.graph
   @doc "convenience for limit, overrides graph.limit"
   defcallback limit(Trabant.graph,integer) :: Trabant.graph
+  @doc "returns raw digraph record, or mdigraph record"
+  defcallback get_graph() :: any
+  @doc "returns a %Trabant.graph derived from @t_name"
+  defcallback graph() :: Trabant.graph
+  @doc "updates a trabant graph with the raw records for digraph and mdigraph"
+  defcallback graph(Trabant.graph) :: Trabant.graph
 end
 

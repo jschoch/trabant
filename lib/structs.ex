@@ -7,3 +7,6 @@ end
 defmodule Trabant.E do
   defstruct pointer: nil, a: nil, b: nil, label: nil
 end
+defmodule Trabant.V do
+  defstruct id: nil
+end

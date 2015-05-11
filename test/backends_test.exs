@@ -5,8 +5,11 @@ defmodule BackendsTest do
     #Trabant.backend(Ddb)
     #Trabant.backend(Digraph)
     Trabant.backend(Mdigraph)
-    Trabant.delete_graph
+    #Trabant.delete_graph
     :ok
+  end
+  setup do
+    Trabant.delete_graph
   end
   import Trabant
   test "basic digraph stuff works" do
@@ -68,6 +71,7 @@ defmodule BackendsTest do
     chain_result = res(result)
     assert chain_result.count == 2, "wrong result #{inspect chain_result}"
     
+    IO.puts "outE result #{inspect chain_result.data}"
     # test basic traversal 
 
     chain_result = graph |> v(vertex) |> outE(:lbl) |> inV(:name) |> res
@@ -181,10 +185,18 @@ defmodule BackendsTest do
     assert herc.id == 5
   end
   test " graph() returns %Trabant.G{}" do
-    assert false, "TODO: implement graph() to retunr %Trabant.G"
+    graph = graph()
+    assert match?(%Trabant.G{}, graph)
   end
   test "update works" do
-    assert false, "TODO: implement update, use id_node for edges, and re-add_edge from id_node when we update the target node info"
+    graph = Trabant.new
+    alcemene = %{id: 1,type: :human}
+    Trabant.create_v(graph,alcemene)
+    updated_alcemene = Map.put(alcemene,:foo,"FOOOOOO")
+    update_v(graph,updated_alcemene)
+    [got_alcemene] = graph |> v_id(1) |> data
+    assert alcemene != got_alcemene
+    assert got_alcemene == updated_alcemene
   end
   
   test "where works" do
@@ -196,13 +208,10 @@ defmodule BackendsTest do
     assert false, "TODO: get limit working" 
   end
   test "don't delete schema" do
-    assert false, "need to ensure we dont' delete schema, need a graph.init or something"
+    assert false, "TODO: finish checking for schema and test init cases"
   end
   test "[] handled correctly in chain" do
     assert false,"TODO: if stream == [] what is the right thing to do?  should all tests return [] if the stream []"
-  end
-  test "TODOs" do
-    assert false, "TODO: think about id's and if we should pass around whole maps vs just ids, or how to make this optional?"
   end
 end
   

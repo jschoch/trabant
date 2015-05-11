@@ -46,6 +46,12 @@ defmodule Trabant do
   def get_graph() do
     Trabant.backend.get_graph()
   end
+  def graph() do
+    Trabant.backend.graph()
+  end
+  def graph(graph) do
+    Trabant.backend.graph(graph)
+  end
   def add_edge(graph,{a,b,label}) do
     Trabant.backend.add_edge(graph,{a,b,label})
   end
@@ -99,6 +105,9 @@ defmodule Trabant do
   end
   def create_v(graph,vertex, label \\[]) do
     Trabant.backend.create_v(graph,vertex, label)
+  end
+  def update_v(graph,vertex) do
+    Trabant.backend.update_v(graph,vertex)
   end
   def delete_graph() do
     Trabant.backend.delete_graph()

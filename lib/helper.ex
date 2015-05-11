@@ -37,7 +37,7 @@ defmodule Hel do
     ]
     g = new("graph")
     Enum.each(nodes, &(Trabant.create_v(g,&1)))
-    IO.puts inspect Trabant.all_v(g) |> data
+    #IO.puts inspect Trabant.all_v(g) |> data
     Enum.each(edges, &(Trabant.add_edge(g,&1)))
     g
   end
