@@ -34,13 +34,22 @@ defmodule BenchesTest do
     IO.puts inspect r,pretty: true
   end
   setup_all do
-    g = new
+    Trabant.backend(Mdigraph)    
+    import Trabant
+    mdg = Trabant.get_graph
+    g = %Trabant.G{g: mdg}
+    case Trabant.v(g,1) do
+      %{id: 1} ->
+        IO.puts "found table"
+      _ -> 
+        IO.puts "creating table"
+        g = new      
+    end
     create_v(g,%{id: 1})
     bench1(g,10000,"in setup")
     bench2(g,10000,"in setup bench2")
     start_agent
     {timed,:ok} = :timer.tc(fn-> 
-      Trabant.backend(Mdigraph)
       g = Hel.veryBig 
       aput(g)
       :ok
@@ -48,6 +57,7 @@ defmodule BenchesTest do
     IO.puts "setup took: #{timed}" 
     :ok
   end
+  @tag timeout: 1000000
   test "can do big stuff" do
     graph = aget
     bench1(graph,10000,"in test")

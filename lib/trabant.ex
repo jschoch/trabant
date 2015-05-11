@@ -43,6 +43,9 @@ defmodule Trabant do
   def new(name) do
     Trabant.backend.new(name)
   end
+  def get_graph() do
+    Trabant.backend.get_graph()
+  end
   def add_edge(graph,{a,b,label}) do
     Trabant.backend.add_edge(graph,{a,b,label})
   end
