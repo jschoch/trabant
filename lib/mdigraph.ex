@@ -103,8 +103,9 @@ defmodule Mdigraph do
         :mdigraph.add_vertex(graph.g,index)
         :mdigraph.add_vertex(graph.g,term)
         :mdigraph.add_vertex(graph.g,term.id)
-        :mdigraph.add_edge(graph.g,term,index,:index)
-        :mdigraph.add_edge(graph.g,index,term.id)
+        r1 = :mdigraph.add_edge(graph.g,term,index,:index)
+        r2 = :mdigraph.add_edge(graph.g,index,term.id,:terminal)
+        Logger.debug("edge add results \n\t#{inspect r1}\n\t#{inspect r2}"
       false ->
         #r = :mdigraph.add_vertex(graph.g,term)
         raise "create_v requires key/value for :id"
