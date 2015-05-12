@@ -210,6 +210,16 @@ defmodule Digraph do
   def get_graph do
     Logger.warn "can't fetch a graph for :digraph without storing it somewhere after new"
   end
+  def del_v(graph,id) when is_number(id) or is_binary(id) do
+    [vertex] = v_id(graph,id) |> data
+    del_v(graph,vertex)
+  end
+  def del_v(graph,map) when is_map(map) do
+    a = :mdigraph.del_vertex(graph.g,map)
+    b = :mdigraph.del_vertex(graph.g,map.id)
+    c = :mdigraph.del_vertex(graph.g,%{id_index: map.id})
+    {a,b,c}
+  end
   defdelegate data(graph), to: Trabant
   defdelegate first(graph), to: Trabant
   defdelegate limit(graph), to: Trabant

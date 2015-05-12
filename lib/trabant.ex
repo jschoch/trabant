@@ -58,6 +58,12 @@ defmodule Trabant do
   def add_edge(graph,a,b,label) do
     Trabant.backend.add_edge(graph,a,b,label)
   end
+  def v(map) when is_map(map) do
+    Trabant.backend.v(map)
+  end
+  def v_id(id) when is_number(id) or is_binary(id) do
+    Trabant.backend.v_id(id)
+  end
   def v(graph,map) do
     Trabant.backend.v(graph,map)
   end
@@ -112,6 +118,15 @@ defmodule Trabant do
   def delete_graph() do
     Trabant.backend.delete_graph()
   end
+  def del_v(graph,id) when is_number(id) or is_binary(id) do
+    Trabant.backend.del_v(graph,id)
+  end
+  def del_v(graph,map) when is_map(map) do
+    Trabant.backend.del_v(graph,map)
+  end
+  def del_e(graph,pointer) do
+    Trabant.backend.del_e(graph,pointer)
+  end
 
   #
   # delegates
@@ -157,7 +172,7 @@ defmodule Trabant do
     stream = Stream.take(graph.stream,limit)
     Map.put(graph,:stream,stream)
   end
-  @doc "creates a vertex and links via edges"
+  @doc "creates a vertex and links via edges %{id: <parent id>,child: <map should be enforced>,label: <edge label>"
   def create_child(graph, opts) when is_map(opts) do
     [source] = v_id(graph,opts.id) |> data
     create_v(graph,opts.child)

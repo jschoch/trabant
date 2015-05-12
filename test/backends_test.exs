@@ -198,7 +198,30 @@ defmodule BackendsTest do
     assert alcemene != got_alcemene
     assert got_alcemene == updated_alcemene
   end
-  
+  test "delete vertex works" do
+    graph = Trabant.new
+    v = %{id: 1,type: :human}
+    create_v(graph,v)
+    del_v(graph,v.id)
+    got_v = graph |> v_id(1) |> data
+    assert got_v == []
+    create_v(graph,v)
+    del_v(graph,v)
+    got_v = graph |> v_id(1) |> data
+    assert got_v == []
+  end
+  test "delete edge works" do
+    graph = Trabant.new
+    v = %{id: 1,type: :human}
+    child = %{id: 2, type: :monster}
+    create_v(graph,v)
+    create_child(graph,%{id: v.id,child: child,label: :relation})
+    [edge] = v(graph,v) |> outE |> data
+    del_e(graph,edge)
+    got = v(graph,v) |> outE |> data
+    assert got == []
+    #TODO: consider adding tests to make sure we don't delete :index edge, or the edge to the terminal node
+  end
   test "where works" do
     # graph |> v(where: {:age,:gt,10})
     assert false, "TODO: need to get where working"

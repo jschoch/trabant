@@ -55,5 +55,11 @@ defmodule Trabant.B do
   defcallback graph() :: Trabant.graph
   @doc "updates a trabant graph with the raw records for digraph and mdigraph"
   defcallback graph(Trabant.graph) :: Trabant.graph
+  @doc "deletes a vertex by id"
+  defcallback del_v(Trabant.graph,number :: binary) :: any
+  @doc "deletes a vertex"
+  defcallback del_V(Trabant.graph,any) :: any
+  @doc "deletes an edge"
+  defcallback del_e(Trabant.graph,list) :: any
 end
 

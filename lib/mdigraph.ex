@@ -1,6 +1,7 @@
 defmodule Mdigraph do
   @behaviour Trabant.B
   @t_name "Graph-#{Mix.env}" |> String.to_char_list
+  @g     {:mdigraph, :"vertices-#{@t_name}", :"edges-#{@t_name}", :"neighbours-#{@t_name}",true}
   require Logger
   def init do
     raise "need to check for an existing schema and warn or get user input"
@@ -39,6 +40,9 @@ defmodule Mdigraph do
       horror -> raise "no id node: #{inspect id} found, something very bad happened\n\thorror: #{inspect horror}"
     end
   end
+  def v_id(id) do
+    v_id(graph(),id)
+  end
   def v_id(graph,id) do
     #[id_node] = graph |> v(%{id_index: id}) |> data
     #data_node = :mdigraph.in_neighbours(graph.g,id_node)
@@ -48,6 +52,9 @@ defmodule Mdigraph do
       doh -> raise "horror #{inspect doh}"
     end
     Map.put(graph,:stream,data_node)
+  end
+  def v(term) do
+    v(graph(),term)
   end
   def v(graph,term) do
     case :mdigraph.vertex(graph.g,term) do
@@ -223,10 +230,24 @@ defmodule Mdigraph do
     {:mdigraph, :"vertices-#{@t_name}", :"edges-#{@t_name}", :"neighbours-#{@t_name}", true}
   end
   def graph do
-    %Trabant.G{g: get_graph}
+    #%Trabant.G{g: get_graph}
+    %Trabant.G{g: @g}
   end
   def graph(graph) do
     Map.put(graph,:g,get_graph)
+  end
+  def del_v(graph,id) when is_number(id) or is_binary(id) do
+    [vertex] = v_id(graph,id) |> data
+    del_v(graph,vertex)
+  end
+  def del_v(graph,map) when is_map(map) do
+    a = :mdigraph.del_vertex(graph.g,map)
+    b = :mdigraph.del_vertex(graph.g,map.id)
+    c = :mdigraph.del_vertex(graph.g,%{id_index: map.id})
+    {a,b,c}
+  end
+  def del_e(graph,edge_pointer) do
+    :mdigraph.del_edge(graph.g,edge_pointer)
   end
   defdelegate data(graph), to: Trabant
   defdelegate first(graph), to: Trabant
