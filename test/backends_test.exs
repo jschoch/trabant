@@ -146,6 +146,13 @@ defmodule BackendsTest do
       create_v(graph,%{index_id: 1})
     end)
   end
+  test "create_v actually creates edges" do
+    graph = Trabant.new
+    v = %{id: 1,node: :foo}
+    create_v(graph,v)
+    edges = :mdigraph.edges(graph.g)
+    assert Enum.count(edges) == 2
+  end
   test "data conenience works" do
     graph = Hel.createG
     [alcmene] = graph |> v_id(9) |> data
