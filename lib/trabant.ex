@@ -143,7 +143,12 @@ defmodule Trabant do
     #Logger.debug "res graph: #{inspect graph.stream |> Enum.to_list}"
     Enum.reduce(graph.stream,%Trabant.R{graph: graph},fn(i,acc) ->
       acc = Map.put(acc,:count,acc.count + 1)
-      Map.put(acc,:data,[i|acc.data])
+      case match?(%Trabant.G{},i) do
+        true ->
+          raise "found another stream, recurse!"
+        false ->
+          Map.put(acc,:data,[i|acc.data])
+      end
     end)
   end
   @doc "get res().data"

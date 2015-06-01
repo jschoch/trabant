@@ -26,6 +26,7 @@ defmodule Ddb do
     new
   end
   def delete_graph() do
+    Logger.warn "deleting table #{@t_name}"
     Dynamo.delete_table(@t_name)
   end
   def all(raw \\false) do
@@ -36,34 +37,51 @@ defmodule Ddb do
       true -> Dynamo.stream_scan(@t_name) |> Enum.map(&Dynamo.Decoder.decode(&1))
     end
   end
-  def create_v(graph,term,label \\[]) do 
-    vertex = %Ddb.V{created_at: Timex.Time.now(:secs)} |> Map.merge(term)
-    case vertex do
-      %Ddb.V{id: id} = vertex when is_binary(id) ->  Dynamo.put_item(@t_name,vertex)
+  @test_id_reg ~r/_/
+  def test_id(id) do
+    case Regex.match?(@test_id_reg,id) do
+      true -> raise "bad id: we suck and cant' deal with _ in id: #{inspect id}"
+      false -> nil
     end
+  end
+  def create_v(graph,term,label \\[])
+  def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do 
+    test_id(id)
+    vertex = %Ddb.V{created_at: Timex.Time.now(:secs)} |> Map.merge(term)
+    res = Dynamo.put_item(@t_name,vertex)
+    Logger.info inspect res
+    vertex
+  end
+  @doc "another hack for range key"
+  def create_v(graph,%{id: id} = term,label) when is_binary(id) do
+    test_id(id)
+    r = "0"
+    vertex = %Ddb.V{created_at: Timex.Time.now(:secs),r: r} |> Map.merge(term)
+    res = Dynamo.put_item(@t_name,vertex)
+    Logger.info inspect res
     vertex
   end
   def add_edge(graph,a,b,label) do
     #TODO: perfect case for using Tasks and concurrency
     # setup out edges for a
     map = Map.merge(label,%{created_at: Timex.Time.now(:secs),id: "out_edge-#{a.id}",r: "#{b.id}_#{Poison.encode!(label)}"}) 
-    edge = struct(Ddb.V,map)
+    edge = struct(Ddb.E,map)
     Logger.debug inspect edge
     {:ok,%{}} = Dynamo.put_item(@t_name,edge)
   
     # setup in_edges for b
     map = Map.merge(map,%{id: "in_edge_#{b.id}",r: "#{a.id}_#{Poison.encode!(label)}"})
-    in_edge = struct(Ddb.V,map)
+    in_edge = struct(Ddb.E,map)
     Logger.debug inspect in_edge
     {:ok,%{}} = Dynamo.put_item(@t_name,in_edge)
   
     # setup neightbors
     map = %{id: "#{a.id}_nbr",r: b.id}
-    a_nbr = struct(Ddb.V,map)
+    a_nbr = struct(Ddb.N,map)
     {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
 
     map = %{id: "#{b.id}_nbr",r: a.id}
-    a_nbr = struct(Ddb.V,map)
+    a_nbr = struct(Ddb.N,map)
     {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
     edge
   end
@@ -85,8 +103,23 @@ defmodule Ddb do
     v_id(graph,{map.id,map.r})
   end
   def v_id(graph,{id,r}) do
-    map = Dynamo.get_item!(@t_name,%{id: id,r: r})|> Dynamo.Decoder.decode(as: Ddb.V)
+    map = Dynamo.get_item!(@t_name,%{id: id,r: r})
+      |> Dynamo.Decoder.decode() |> keys_to_atoms
     Map.put(graph,:stream,[map])
+  end
+  @doc "this should be @hack tagged"
+  def keys_to_atoms(map) do
+    Enum.reduce(Map.keys(map),%{}, fn(key,acc) ->
+      Map.put(acc,String.to_existing_atom(key),map[key]) 
+    end)
+  end
+  @doc "hack to keep range keys but not require them"
+  def v_id(graph,id) when is_binary(id) do
+    r = "0"
+    v_id(graph,{id,r})
+  end
+  def v_id(graph,id) when is_number(id) do
+    raise "id can't be a number right now, need to implement way to configure schema and table for that type and check it correctly"
   end
   def inE(graph,vertex) when is_map(vertex) do
     eav = [id: "in_edge",r: "#{vertex.id}_"]
@@ -102,9 +135,11 @@ defmodule Ddb do
       #r
       eav = [id: "out_edge-#{vertex.id}"]
       kce = "id = :id"
-      stream = Dynamo.stream_query(@t_name,
+      Logger.debug "outE: \n\tvertex: #{inspect vertex}\n\teav: #{inspect eav}\n\tkce: #{inspect kce}"
+      Dynamo.stream_query(@t_name,
+      #Dynamo.query(@t_name,
         expression_attribute_values: eav,
-        key_condition_expression: kce) 
+        key_condition_expression: kce)  #|> Enum.to_list
     end)
     Map.put(graph,:stream,stream)
   end
@@ -124,10 +159,9 @@ defmodule Ddb do
       # TODO: seems like a hack but not sure how to get the matching labels
       # need a manditory :label attribute or something
       Stream.filter(outE(graph,vertex).stream, fn(edge_pointer) ->
-        #raise "not done implementing def e(edge)"
-        e = parse_edge_label(edge_pointer)
+        e = parse_pointer(edge_pointer)
         Logger.debug "got edge label :#{inspect e}"
-        Map.has_key?(e.label, label_key )
+        Map.has_key?(e["label"], label_key )
       end)
     end)
     Map.put(graph,:stream,stream)
@@ -135,9 +169,9 @@ defmodule Ddb do
   @doc "match map for outE"
   def outE(graph,match_map) when is_map(match_map) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
-      stream = Stream.map(outE(graph,vertex),fn(edge_pointer) ->
-        edge = parse_edge_label(edge_pointer)
-        case mmatch(edge.label,match_map) do
+      edges = Stream.map(outE(graph,vertex),fn(edge_pointer) ->
+        edge = parse_pointer(edge_pointer)
+        case mmatch(edge["label"],match_map) do
           true ->
             #Logger.debug "match: #{inspect edge_pointer}"
             # TODO: consider option to return %Trabant.E vs edge pointer
@@ -146,14 +180,33 @@ defmodule Ddb do
           false -> nil
         end
       end)
-      Stream.filter(stream,&(&1 != nil))
+      Stream.filter(edges,&(&1 != nil))
     end)
     Map.put(graph,:stream,stream)
   end
-  def parse_edge_label({id,r}) do
-    [id,label] = String.split(r,"_")
-    label = Poison.decode!(label,keys: :atoms)
-    %{label: label,b_id: id} 
+  @out_reg ~r/^(?<out_id>.*)_(?<label>.*)/
+  @id_reg ~r/^out_edge-(?<id>.*)$/
+  def parse_pointer({a,b}) do
+    map = Regex.named_captures(@id_reg,a) |> Map.merge(Regex.named_captures(@out_reg,b))
+    Logger.debug "parse_pointer \n\t#{inspect a} \n\t#{inspect b}\n\t#{inspect map}"
+    Map.put(map,"label",Poison.decode!(map["label"],keys: :atoms))
+  end
+  def inV(graph) do
+    stream = Stream.flat_map(graph.stream,fn(edge_pointer) ->
+      Logger.debug "EP: #{inspect edge_pointer}"
+      out_edge = parse_pointer(edge_pointer)
+      Logger.debug "inV fetching node id: #{out_edge["out_id"]}"
+      v_id(graph,out_edge["out_id"]) |> data
+      #[vertex
+    end)
+    Map.put(graph,:stream,stream)
+  end
+  def inV(graph,key) when is_atom(key) do
+    stream = Stream.filter(inV(graph).stream,fn(vertex) ->
+      Logger.debug "FUCK YOU \n\t#{inspect vertex}"
+      Map.has_key?(vertex,key)
+    end)
+    Map.put(graph,:stream,stream)
   end
   def e({id,r}) do
     i = Dynamo.get_item!(@t_name,%{id: id, r: r}) |> Dynamo.Decoder.decode

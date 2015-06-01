@@ -6,8 +6,8 @@ defmodule Mdigraph do
   def init do
     raise "need to check for an existing schema and warn or get user input"
     :mnesia.stop
-    #:mnesia.delete_schema([node])
-    #:mnesia.create_schema([node])
+    :mnesia.delete_schema([node])
+    :mnesia.create_schema([node])
     :mnesia.start
   end
   def new() do
