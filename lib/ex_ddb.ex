@@ -45,6 +45,9 @@ defmodule Ddb do
     end
   end
   def create_v(graph,term,label \\[])
+  #def create_v(graph,term,label \\[]) do
+    #create_v(graph,term,label)
+  #end
   def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do 
     test_id(id)
     vertex = %Ddb.V{created_at: Timex.Time.now(:secs)} |> Map.merge(term)
@@ -104,7 +107,8 @@ defmodule Ddb do
   end
   def v_id(graph,{id,r}) do
     map = Dynamo.get_item!(@t_name,%{id: id,r: r})
-      |> Dynamo.Decoder.decode() |> keys_to_atoms
+      #|> Dynamo.Decoder.decode() |> keys_to_atoms
+      |> Dynamo.Decoder.decode(as: Ddb.V)
     Map.put(graph,:stream,[map])
   end
   @doc "this should be @hack tagged"
@@ -128,39 +132,44 @@ defmodule Ddb do
       expression_attribute_values: eav,
       key_condition_expression: kce)
   end
+  @doc "get all out edges from stream of vertexes"
   def outE(graph) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
-      #r = outE(graph,vertex)
-      #Logger.debug("FUCK #{inspect(r.stream |> Enum.to_list)}")
-      #r
       eav = [id: "out_edge-#{vertex.id}"]
       kce = "id = :id"
-      Logger.debug "outE: \n\tvertex: #{inspect vertex}\n\teav: #{inspect eav}\n\tkce: #{inspect kce}"
       Dynamo.stream_query(@t_name,
-      #Dynamo.query(@t_name,
         expression_attribute_values: eav,
         key_condition_expression: kce)  #|> Enum.to_list
     end)
     Map.put(graph,:stream,stream)
   end
+  @doc "gets all out edges for a single vertex, uses %Trabant.V{} :id"
   def outE(graph,%Ddb.V{} = vertex) when is_map(vertex) do
+    Logger.debug "getting edges for vertex: #{inspect vertex}"
     eav = [id: "out_edge-#{vertex.id}"]
     kce = "id = :id"
     stream = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
       key_condition_expression: kce)
+    #Logger.debug "raw Dynamo stream\n\n\n" <> inspect Enum.to_list stream
     stream = Stream.map(stream, &Dynamo.Decoder.decode(&1,as: Ddb.E))
+    #Logger.debug "as Ddb.E stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
     stream = Stream.map(stream, &({&1.id,&1.r}))
+    #Logger.debug "to go into graph stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
+  
     Map.put(graph,:stream,stream)
   end
-  @doc "TODO: this is kind of a hack, not really sure where it fits, shoudl consider removing it"
+
+  @doc "get label, labels should be used for indexing mostly"
   def outE(graph,label_key) when is_atom(label_key)do
+    Logger.debug "outE(:lbl)\n\t'G'" <> inspect graph 
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
       # TODO: seems like a hack but not sure how to get the matching labels
       # need a manditory :label attribute or something
+      #Logger.debug "outE: vertex" <> inspect vertex
       Stream.filter(outE(graph,vertex).stream, fn(edge_pointer) ->
         e = parse_pointer(edge_pointer)
-        Logger.debug "got edge label :#{inspect e}"
+        #Logger.debug "got edge label :#{inspect e}"
         Map.has_key?(e["label"], label_key )
       end)
     end)
@@ -168,27 +177,47 @@ defmodule Ddb do
   end
   @doc "match map for outE"
   def outE(graph,match_map) when is_map(match_map) do
+
+    # get vertexes
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
-      edges = Stream.map(outE(graph,vertex),fn(edge_pointer) ->
+      Logger.debug "match map for outE vertex: #{inspect vertex}"
+      # get edge pointers
+      edges = outE(graph,vertex)
+      checked_edges = check_edges(edges,match_map)
+      # remove nil results
+      #Logger.debug "checked edges #{inspect Enum.to_list(checked_edges)}"
+      #Logger.debug "done checking edges"
+      Stream.filter(checked_edges,&(&1 != nil))
+      #Enum.filter(edges,&(&1 != nil))
+    end)
+    #Logger.debug "start"
+    #Logger.debug "output stream from outE mmap: #{inspect Enum.to_list(stream)}"
+    #Logger.debug "done"
+    Map.put(graph,:stream,stream)
+  end
+  defp check_edges(edges,match_map) do
+    Stream.map(edges.stream,fn(edge_pointer) ->
+      #Logger.debug "edge pointer: #{inspect edge_pointer}"
         edge = parse_pointer(edge_pointer)
+        #test if edge matches
         case mmatch(edge["label"],match_map) do
           true ->
-            #Logger.debug "match: #{inspect edge_pointer}"
+            #Logger.debug "match: #{}\n\t#{inspect edge_pointer}"
             # TODO: consider option to return %Trabant.E vs edge pointer
             #%Trabant.E{pointer: pointer, a: a, b: b, label: label}
+ 
             edge_pointer
-          false -> nil
-        end
-      end)
-      Stream.filter(edges,&(&1 != nil))
+         false -> 
+           #Logger.debug "no match #{inspect edge_pointer}\n\te:  #{inspect edge, pretty: true}"
+           nil
+       end
     end)
-    Map.put(graph,:stream,stream)
   end
   @out_reg ~r/^(?<out_id>.*)_(?<label>.*)/
   @id_reg ~r/^out_edge-(?<id>.*)$/
   def parse_pointer({a,b}) do
     map = Regex.named_captures(@id_reg,a) |> Map.merge(Regex.named_captures(@out_reg,b))
-    Logger.debug "parse_pointer \n\t#{inspect a} \n\t#{inspect b}\n\t#{inspect map}"
+    #Logger.debug "parse_pointer \n\t#{inspect a} \n\t#{inspect b}\n\t#{inspect map}"
     Map.put(map,"label",Poison.decode!(map["label"],keys: :atoms))
   end
   def inV(graph) do

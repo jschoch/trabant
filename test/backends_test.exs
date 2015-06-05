@@ -13,33 +13,46 @@ defmodule BackendsTest do
     Trabant.new
     :ok
   end
+
+  @m %{id: "1",name: "Bob",r: "0"}
+  @m2  %{id: "2",name: "Biff",r: "0"}
+  @m3  %{id: "3",nick: "Brock",r: "0"}
+  @edge_label %{type: :foo}
+
   import Trabant
-  test "basic digraph stuff works" do
+  def create_data do
     graph = Trabant.new("graph")
-    m = %{id: "1",name: "Bob",r: "0"}
-    m2 = %{id: "2",name: "Biff",r: "0"}
-    m3 = %{id: "3",nick: "Brock",r: "0"}
-    create_v(graph,m)
-    create_v(graph,m2)
-    create_v(graph,m3)
-    edge_label = %{type: :foo}
-    e = add_edge(graph,m,m2,edge_label)
-    e2 = add_edge(graph,m,m2,%{type: :bar})
-    e3 = add_edge(graph,m,m2,%{lbl: :baz})
-    e4 = add_edge(graph,m,m3,%{lbl: :unf})
-    e5 = add_edge(graph,m3,m,%{lbl: :back_at_you})
-    assert e != nil
-    #assert e == :ok, "wrong result #{inspect e}"
+    create_v(graph,@m)
+    create_v(graph,@m2)
+    create_v(graph,@m3)
+    e = add_edge(graph,@m,@m2,@edge_label)
+    e2 = add_edge(graph,@m,@m2,%{type: :bar})
+    e3 = add_edge(graph,@m,@m2,%{lbl: :baz})
+    e4 = add_edge(graph,@m,@m3,%{lbl: :unf})
+    e5 = add_edge(graph,@m3,@m,%{lbl: :back_at_you})
+    graph
+  end
+  test "get vertex by term" do
+    graph = create_data
   
     # test get vertex by term
   
-    result = graph |> v(m) |> res
+    result = graph |> v(@m) |> res
+    assert result != nil
     [vertex] = result.data
     assert vertex != nil
-    assert vertex.id == m.id, "wrong result #{inspect vertex}"
+    assert vertex.id == @m.id, "wrong result #{inspect vertex}"
 
-    # test outE
+    # data works as well
 
+    [vertex] = graph |> v(@m) |> data
+    assert vertex.id == @m.id
+    IO.puts "raw vertex result: \n\n#{inspect result, pretty: true}"
+  end
+
+  test "test outE" do
+    graph = create_data
+    [vertex] = graph |> v(@m) |> data
     c = graph
       |> v(vertex)
       |> outE
@@ -48,8 +61,10 @@ defmodule BackendsTest do
     IO.puts "#{inspect(c.stream |> Enum.to_list)}"
     lst = c.stream |> Enum.to_list
     assert Enum.count(lst) == 4, "outE borked #{inspect lst}\n\t#{inspect c}"
-
-    # test count
+  end
+  test "test count" do
+    graph = create_data
+    [vertex] = graph |> v(@m) |> data
 
     c = graph 
       |> v(vertex) 
@@ -57,46 +72,76 @@ defmodule BackendsTest do
       |> res
     assert c.count == 4, "wrong result #{inspect c}"
 
-
-    # test get out edges for single vertex
+  end
+  test "test get out edges for single vertex" do
+    graph = create_data
+    [vertex] = graph |> v(@m) |> data
 
     outE_result = graph |> v(vertex) |> outE() |> res
     assert match?( %Trabant.G{} , outE_result.graph),"bad match wrong result #{inspect outE_result}"
     assert outE_result.count == 4, "wrong count for #{inspect outE_result.data}\n\n#{inspect Enum.to_list(outE_result.graph.stream)}"
-
-    
-    # test outE with key
-    raise "fuck you, redo these tests"
+  end
+  test "test outE with %Trabant.V{}" do
+    graph = create_data
+    result = graph 
+      |> v(@m)
+      |> outE(%Ddb.V{id: "1"})
+      |> data
+    assert result = [@m], "wrong result #{inspect result}"
+  end
+  test "test outE with mmap" do
+    graph = create_data
+    result = graph
+      |> v(@m) 
+      |> outE(%{lbl: "baz"})
+      |> data
+    assert result != nil
+    assert result == [{"out_edge-1", "2_{\"lbl\":\"baz\"}"}], "wrong result #{inspect result}"
+  end
+  test "test outE with key" do
+    graph = create_data
+    [vertex] = graph |> v(@m) |> data
     result = graph 
       |> v(vertex) 
-      |> outE(:lbl) 
-    IO.puts inspect "RESULT " <> inspect result
+      |> outE(:lbl)
+    IO.puts inspect "Result " <> inspect result
+    IO.puts inspect "stream" <> inspect Enum.to_list(result.stream)
     chain_result = res(result)
     assert chain_result.count == 2, "wrong result #{inspect chain_result}"
     
     IO.puts "outE result #{inspect chain_result.data}"
+  end
+  test "basic traversal" do
+    graph = create_data
+    result = graph |> v(@m) |> res
+    [vertex] = graph |> v(@m) |> data
+
     # test basic traversal 
     chain_result = result |> inV(:name) |> res
 
     #chain_result =  Enum.to_list(got_graph.stream)
-    assert chain_result.data == [m2], "wrong result #{inspect chain_result}"
+    assert chain_result.data == [@m2], "wrong result #{inspect chain_result}"
 
-  
+  end
+  test "map match works on outE" do
+    graph = create_data
+    [vertex] = graph |> v(@m) |> data
+
     # test if map match filter works on outE
 
-    map_match_result = graph |> v(vertex) |> outE(edge_label) |> res
+    map_match_result = graph |> v(vertex) |> outE(@edge_label) |> res
     assert map_match_result.data != [], "doh! #{inspect map_match_result}"
     [edge_pointer] = map_match_result.data
     edge = e(graph.g,edge_pointer)
-    assert edge.label == edge_label, "wrong result #{inspect map_match_result}"
+    assert edge.label == @edge_label, "wrong result #{inspect map_match_result}"
 
     # test if bad match returns []
 
     map_match_result = graph |> v(vertex) |>  outE(%{nope: :nada}) |> res
     assert map_match_result.data == [], "wrong result #{inspect map_match_result}"
   
-    chain_result = graph |> v(m) |> outE(:lbl) |> inV(:nick) |> res
-    assert chain_result.data == [m3], "wrong result #{inspect chain_result}"
+    chain_result = graph |> v(@m) |> outE(:lbl) |> inV(:nick) |> res
+    assert chain_result.data == [@m3], "wrong result #{inspect chain_result}"
     
     # test re-use stream
 
@@ -104,7 +149,7 @@ defmodule BackendsTest do
     [edge_pointer] = result.data
     edge = e(graph.g,edge_pointer)
     assert match?( %Trabant.E{},edge),"bad match \n\tedge: #{inspect edge} \n\tresult: #{inspect result}"
-    assert edge.label == %{lbl: :back_at_you},"wrong result #{inspect edge} #{inspect e5}"
+    assert edge.label == %{lbl: :back_at_you},"wrong result #{inspect edge}" 
   end
   test "vertex lookups" do
     graph = Hel.createG

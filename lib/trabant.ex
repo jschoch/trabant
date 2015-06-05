@@ -8,10 +8,10 @@ defmodule Trabant do
     backend = backend()
     Logger.info "starting backend: #{backend}"
     case backend do
-      Mdigraph -> 
+      Mdigraph ->
         :mnesia.start
         Trabant.Super.start_link(Mdigraph)
-      _ -> 
+      _ ->
         Trabant.Super.start_link(backend)
     end
   end
@@ -32,7 +32,7 @@ defmodule Trabant do
     start(nil,nil)
   end
   def silly do
-    @silly 
+    @silly
   end
   #
   # calls to backends
@@ -140,7 +140,6 @@ defmodule Trabant do
   end
   @doc "process stream result into enum, collect md and counts etc"
   def res(%Trabant.G{} = graph) do
-    #Logger.debug "res graph: #{inspect graph.stream |> Enum.to_list}"
     Enum.reduce(graph.stream,%Trabant.R{graph: graph},fn(i,acc) ->
       acc = Map.put(acc,:count,acc.count + 1)
       case match?(%Trabant.G{},i) do
@@ -154,7 +153,8 @@ defmodule Trabant do
   @doc "get res().data"
   def data(graph) do
     #Logger.debug inspect res(graph)
-    res(graph).data
+    r = res(graph)
+    r.data
   end
   def first(graph) do
     stream = Stream.take(graph.stream,1)
@@ -184,4 +184,3 @@ defmodule Trabant do
     add_edge(graph,source,opts.child,opts.label)
   end
 end
-
