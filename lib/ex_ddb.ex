@@ -135,11 +135,12 @@ defmodule Ddb do
   @doc "get all out edges from stream of vertexes"
   def outE(graph) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
-      eav = [id: "out_edge-#{vertex.id}"]
-      kce = "id = :id"
-      Dynamo.stream_query(@t_name,
-        expression_attribute_values: eav,
-        key_condition_expression: kce)  #|> Enum.to_list
+      #eav = [id: "out_edge-#{vertex.id}"]
+      #kce = "id = :id"
+      #Dynamo.stream_query(@t_name,
+        #expression_attribute_values: eav,
+        #key_condition_expression: kce)  #|> Enum.to_list
+      outE(graph,vertex).stream
     end)
     Map.put(graph,:stream,stream)
   end
@@ -226,7 +227,6 @@ defmodule Ddb do
       out_edge = parse_pointer(edge_pointer)
       Logger.debug "inV fetching node id: #{out_edge["out_id"]}"
       v_id(graph,out_edge["out_id"]) |> data
-      #[vertex
     end)
     Map.put(graph,:stream,stream)
   end
@@ -236,6 +236,9 @@ defmodule Ddb do
       Map.has_key?(vertex,key)
     end)
     Map.put(graph,:stream,stream)
+  end
+  def e(graph,{id,r}) do
+    e({id,r})
   end
   def e({id,r}) do
     i = Dynamo.get_item!(@t_name,%{id: id, r: r}) |> Dynamo.Decoder.decode

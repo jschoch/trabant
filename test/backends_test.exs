@@ -17,7 +17,7 @@ defmodule BackendsTest do
   @m %{id: "1",name: "Bob",r: "0"}
   @m2  %{id: "2",name: "Biff",r: "0"}
   @m3  %{id: "3",nick: "Brock",r: "0"}
-  @edge_label %{type: :foo}
+  @edge_label %{type: "foo"}
 
   import Trabant
   def create_data do
@@ -73,6 +73,17 @@ defmodule BackendsTest do
     assert c.count == 4, "wrong result #{inspect c}"
 
   end
+  test "gets outE as Ddb.E" do
+    graph = create_data
+    r = graph 
+      |> v(@m) 
+      |> outE
+      |> data
+    e = List.first(r)
+    assert match?({_,_},e), "wrong type or result #{inspect e}"
+    assert e == {"out_edge-1", "3_{\"lbl\":\"unf\"}"}
+
+  end
   test "test get out edges for single vertex" do
     graph = create_data
     [vertex] = graph |> v(@m) |> data
@@ -111,46 +122,55 @@ defmodule BackendsTest do
     
     IO.puts "outE result #{inspect chain_result.data}"
   end
-  test "basic traversal" do
+  test "inV(graph) works" do
     graph = create_data
-    result = graph |> v(@m) |> res
-    [vertex] = graph |> v(@m) |> data
+    g = graph 
+      |> v(@m)
+      |> outE
+      #|> outE(@m)
+      |> inV 
+    result = data(g)
+    assert result != nil
+    IO.puts inspect result, pretty: true
+  end
+  test "inv(:label) works" do
+    graph = create_data
+    result = graph |> v(@m) |> outE |>  res
 
     # test basic traversal 
-    chain_result = result |> inV(:name) |> res
+    chain_result = result.graph |> inV(:name) |> data
 
     #chain_result =  Enum.to_list(got_graph.stream)
+    assert false, "you need to figure out how to cast to a struct and keep the other attributes you add like :name, and :nick, this test will not work without that"
     assert chain_result.data == [@m2], "wrong result #{inspect chain_result}"
 
   end
-  test "map match works on outE" do
-    graph = create_data
-    [vertex] = graph |> v(@m) |> data
-
-    # test if map match filter works on outE
-
-    map_match_result = graph |> v(vertex) |> outE(@edge_label) |> res
-    assert map_match_result.data != [], "doh! #{inspect map_match_result}"
-    [edge_pointer] = map_match_result.data
-    edge = e(graph.g,edge_pointer)
-    assert edge.label == @edge_label, "wrong result #{inspect map_match_result}"
-
-    # test if bad match returns []
-
-    map_match_result = graph |> v(vertex) |>  outE(%{nope: :nada}) |> res
-    assert map_match_result.data == [], "wrong result #{inspect map_match_result}"
-  
-    chain_result = graph |> v(@m) |> outE(:lbl) |> inV(:nick) |> res
-    assert chain_result.data == [@m3], "wrong result #{inspect chain_result}"
-    
-    # test re-use stream
-
-    result = chain_result.graph |> outE(:lbl) |> res
-    [edge_pointer] = result.data
-    edge = e(graph.g,edge_pointer)
-    assert match?( %Trabant.E{},edge),"bad match \n\tedge: #{inspect edge} \n\tresult: #{inspect result}"
-    assert edge.label == %{lbl: :back_at_you},"wrong result #{inspect edge}" 
-  end
+  #test "map match works on outE" do
+    #graph = create_data
+#
+    #map_match_result = graph |> v(@m) |> outE(@edge_label) |> res
+    #assert map_match_result.data != [], "doh! #{inspect map_match_result}"
+    #[edge_pointer] = map_match_result.data
+    #edge = e(graph.g,edge_pointer)
+    #assert edge != nil
+    #assert edge.label == @edge_label, "wrong result #{inspect map_match_result}"
+#
+    ## test if bad match returns []
+#
+    #map_match_result = graph |> v(@m) |>  outE(%{nope: :nada}) |> res
+    #assert map_match_result.data == [], "wrong result #{inspect map_match_result}"
+  #
+    #chain_result = graph |> v(@m) |> outE(:lbl) |> inV(:nick) |> res
+    #assert chain_result.data == [@m3], "wrong result #{inspect chain_result}"
+    #
+    ## test re-use stream
+#
+    #result = chain_result.graph |> outE(:lbl) |> res
+    #[edge_pointer] = result.data
+    #edge = e(graph.g,edge_pointer)
+    #assert match?( %Trabant.E{},edge),"bad match \n\tedge: #{inspect edge} \n\tresult: #{inspect result}"
+    #assert edge.label == %{lbl: :back_at_you},"wrong result #{inspect edge}" 
+  #end
   test "vertex lookups" do
     graph = Hel.createG
     alcmene = %{age: 45, id: 9, name: "Alcmene", type: :human}
