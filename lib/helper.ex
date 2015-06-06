@@ -17,16 +17,16 @@ defmodule Hel do
     graph
   end
   def createG do
-    saturn = %{id: 1,name: "Saturn",age: 10000,type: :titan}
-    jupiter = %{id: 2,name: "Jupiter", type: :god, age: 5000}
-    sky = %{id: 3,name: "sky",type: :location}
-    sea = %{id: 4,name: "sea",type: :location}
-    hercules = %{id: 5,name: "Hercules", type: :demigod, age: 30}
-    nemean = %{id: 6,name: "Nemean", type: :monster}
-    cerberus = %{id: 7,name: "Cerberus", type: :monster}
-    hydra = %{id: 8,name: "Hydra", type: :monster}
-    alcmene = %{id: 9,name: "Alcmene",age: 45,type: :human}
-    pluto = %{id: 10,name: "Pluto",age: 4000, type: :god}
+    saturn = %{id: "1",r: "0",name: "Saturn",age: 10000,type: :titan}
+    jupiter = %{id: "2",r: "0",name: "Jupiter", type: :god, age: 5000}
+    sky = %{id: "3",r: "0",name: "sky",type: :location}
+    sea = %{id: "4",r: "0",name: "sea",type: :location}
+    hercules = %{id: "5",r: "0",name: "Hercules", type: :demigod, age: 30}
+    nemean = %{id: "6",r: "0",name: "Nemean", type: :monster}
+    cerberus = %{id: "7",r: "0",name: "Cerberus", type: :monster}
+    hydra = %{id: "8",r: "0",name: "Hydra", type: :monster}
+    alcmene = %{id: "9",r: "0",name: "Alcmene",age: 45,type: :human}
+    pluto = %{id: "10",r: "0",name: "Pluto",age: 4000, type: :god}
     nodes = [
       saturn,
       sky,
@@ -40,21 +40,24 @@ defmodule Hel do
       nemean
     ]
     edges = [
-      {jupiter,saturn,%{relation: :father}},
-      {jupiter,sky,%{relation: :lives,reason: "loves fresh breezes"}},
-      {jupiter,pluto,%{relation: :brother}},
-      {pluto, jupiter,%{relation: :brother}},
-      {pluto, cerberus,%{relation: :pet}},
-      {hercules,jupiter,%{relation: :father}},
-      {hercules,alcmene,%{relation: :mother}},
-      {hercules, nemean, %{relation: :battled}},
-      {hercules, hydra,%{relation: :battled}},
-      {hercules, cerberus,%{relation: :battled}}
+      {jupiter,saturn,%{relation: "father"}},
+      {jupiter,sky,%{relation: "lives",reason: "loves fresh breezes"}},
+      {jupiter,pluto,%{relation: "brother"}},
+      {pluto, jupiter,%{relation: "brother"}},
+      {pluto, cerberus,%{relation: "pet"}},
+      {hercules,jupiter,%{relation: "father"}},
+      {hercules,alcmene,%{relation: "mother"}},
+      {hercules, nemean, %{relation: "battled"}},
+      {hercules, hydra,%{relation: "battled"}},
+      {hercules, cerberus,%{relation: "battled"}}
     ]
     g = new("graph")
     Enum.each(nodes, &(Trabant.create_v(g,&1)))
     #IO.puts inspect Trabant.all_v(g) |> data
-    Enum.each(edges, &(Trabant.add_edge(g,&1)))
+    #Enum.each(edges, &(Trabant.add_edge(g,&1)))
+    Enum.each(edges, fn({a,b,label}) ->
+      Trabant.add_edge(g,a,b,label)
+    end)
     g
   end
   def veryBig() do

@@ -150,11 +150,18 @@ defmodule Trabant do
       end
     end)
   end
+  def res(term) do
+    raise "expected a %Trabant.G{} got: \n\t#{inspect term,pretty: true}"
+  end
   @doc "get res().data"
   def data(graph) do
     #Logger.debug inspect res(graph)
     r = res(graph)
     r.data
+  end
+  @doc "TODO: do we really need this?"
+  def first(%Trabant.G{stream: []} = graph) do
+    graph
   end
   def first(graph) do
     stream = Stream.take(graph.stream,1)

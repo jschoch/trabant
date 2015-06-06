@@ -31,15 +31,21 @@ defmodule VTest do
     assert result != nil
     IO.puts inspect result, pretty: true
   end
-    test "inv(:label) works" do
+  test "inv(:label) works" do
     graph = Hel.create_data
     result = graph |> v(@m) |> outE |>  res
 
     # test basic traversal
     chain_result = result.graph |> inV(:name) |> data
+    [item] = chain_result
 
     #chain_result =  Enum.to_list(got_graph.stream)
-    assert chain_result.data == [@m2], "wrong result #{inspect chain_result}"
+    assert item.id == @m2.id, "wrong result #{inspect chain_result}"
 
+  end
+  test "inV(%{foo: \"foo\"}) works" do
+    graph = Hel.create_data
+    [item] = graph |> v(@m) |> outE |> inV(%{name: "Bob"}) |> data
+    assert item.id == @m.id 
   end
 end

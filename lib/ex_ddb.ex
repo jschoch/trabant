@@ -51,6 +51,9 @@ defmodule Ddb do
   #def create_v(graph,term,label \\[]) do
     #create_v(graph,term,label)
   #end
+  def create_v(graph,%{id: id}, label) when is_number(id) do
+    raise "can't use integer id's until we workout how to get the table creation types aligned and correct"
+  end
   def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do
     test_id(id)
     vertex = %Ddb.V{created_at: Timex.Time.now(:secs)} |> Map.merge(term)
@@ -91,12 +94,32 @@ defmodule Ddb do
     {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
     out_edge
   end
+  def decode_vertex(raw) do
+    map = Dynamo.Decoder.decode(raw) |> keys_to_atoms
+    Map.merge(%Ddb.V{},map)
+  end
+  def out(graph) do
+    stream = Stream.flat_map(graph.stream,fn(vertex) ->
+      graph = out(graph,vertex) 
+      Logger.debug "out(graph): \n\n\t#{inspect Enum.to_list(graph.stream)}"
+      graph.stream
+    end)
+    Map.put(graph,:stream,stream)
+  end
   def out(graph,vertex) do
     eav = [id: "#{vertex.id}_nbr"]
     kce = "id = :id "
     r = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
       key_condition_expression: kce)
+    stream = Stream.flat_map(r,fn(raw) -> 
+      item = Dynamo.Decoder.decode(raw,as: Ddb.N)
+      [id|tail] = String.split(item.id,"_")
+      g = v_id(graph,id)
+      g.stream
+      #decode_vertex(raw) 
+    end)
+    Map.put(graph,:stream,stream)
   end
   def inn(graph,vertex) do
     eav = [id: "#{vertex.id}_nbr"]
@@ -113,12 +136,14 @@ defmodule Ddb do
   end
   def v_id(graph,{id,r}) do
     Logger.debug "getting item\n\tid: #{inspect id}\n\tr: #{inspect r}"
-    map = Dynamo.get_item!(@t_name,%{id: id,r: r})
-      |> Dynamo.Decoder.decode() |> keys_to_atoms
-    Logger.debug("raw item: #{inspect map,pretty: true}")
-    # preserve additional attributes by not using as:
-    map = Map.merge(%Ddb.V{},map)
+    #map = Dynamo.get_item!(@t_name,%{id: id,r: r})
+      #|> Dynamo.Decoder.decode() |> keys_to_atoms
+    #Logger.debug("raw item: #{inspect map,pretty: true}")
+    ## preserve additional attributes by not using as:
+    #map = Map.merge(%Ddb.V{},map)
       #|> Dynamo.Decoder.decode(as: Ddb.V)
+
+    map = Dynamo.get_item!(@t_name,%{id: id, r: r}) |> decode_vertex
     Map.put(graph,:stream,[map])
   end
   @doc "this should be @hack tagged"
@@ -239,6 +264,7 @@ defmodule Ddb do
     #Logger.debug "parse_pointer \n\t#{inspect a} \n\t#{inspect b}\n\t#{inspect map}"
     Map.put(map,"label",Poison.decode!(map["label"],keys: :atoms))
   end
+  @doc "fetches unique vertexes from a list of edge pointers"
   def inV(graph) do
     stream = Stream.flat_map(graph.stream,fn(edge_pointer) ->
       Logger.debug "EP: #{inspect edge_pointer}"
@@ -246,14 +272,19 @@ defmodule Ddb do
       Logger.debug "inV fetching node id: #{out_edge["out_id"]}"
       v_id(graph,out_edge["out_id"]) |> data
     end)
+    #TODO: possible infinite loop here
+    stream = Stream.uniq(stream)
     Map.put(graph,:stream,stream)
   end
   def inV(graph,key) when is_atom(key) do
     stream = Stream.filter(inV(graph).stream,fn(vertex) ->
-      Logger.debug "FUCK YOU \n\t#{inspect vertex}"
+      #Logger.debug "FUCK YOU \n\t#{inspect vertex}"
       Map.has_key?(vertex,key)
     end)
     Map.put(graph,:stream,stream)
+  end
+  def inV(graph,mmap) when is_map(mmap) do
+    raise "TODO: implement me"
   end
   def e(graph,{id,r}) do
     e({id,r})
