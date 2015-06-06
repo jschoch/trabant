@@ -1,14 +1,17 @@
 defmodule Ddb.V do
   @derive [ExAws.Dynamo.Encodable]
-  defstruct [:id,:r, :created_at]
+  #defstruct [:id,:r, :created_at]
+  defstruct id: nil, r: nil, created_at: Timex.Time.now(:secs)
 end
 defmodule Ddb.E do
   @derive [ExAws.Dynamo.Encodable]
-  defstruct [:id,:r, :created_at]
+  #defstruct [:id,:r, :created_at]
+  defstruct id: nil, r: nil, created_at: Timex.Time.now(:secs)
 end
 defmodule Ddb.N do
   @derive [ExAws.Dynamo.Encodable]
-  defstruct [:id,:r, :created_at]
+  #defstruct [:id,:r, :created_at]
+  defstruct id: nil, r: nil, created_at: Timex.Time.now(:secs)
 end
 defmodule Ddb do
   @behaviour Trabant.B
@@ -16,7 +19,7 @@ defmodule Ddb do
   alias ExAws.Dynamo
   require Logger
   def new() do
-    tbl = Dynamo.create_table(@t_name,[id: :hash,r: :range],[id: :string,r: :string], 1, 1) 
+    tbl = Dynamo.create_table(@t_name,[id: :hash,r: :range],[id: :string,r: :string], 1, 1)
     #tbl = Dynamo.create_table(@t_name,[id: :hash],[id: :string], 1, 1)
     Logger.debug inspect tbl
     %Trabant.G{g: %{table_name: @t_name, hash_key_name: "id",range_key_name: "r"}}
@@ -31,8 +34,8 @@ defmodule Ddb do
   end
   def all(raw \\false) do
     case raw do
-      false -> 
-        {:ok, stuff} = Dynamo.scan(@t_name) 
+      false ->
+        {:ok, stuff} = Dynamo.scan(@t_name)
         #Dynamo.Decoder.decode(stuff["Items"])
       true -> Dynamo.stream_scan(@t_name) |> Enum.map(&Dynamo.Decoder.decode(&1))
     end
@@ -48,7 +51,7 @@ defmodule Ddb do
   #def create_v(graph,term,label \\[]) do
     #create_v(graph,term,label)
   #end
-  def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do 
+  def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do
     test_id(id)
     vertex = %Ddb.V{created_at: Timex.Time.now(:secs)} |> Map.merge(term)
     res = Dynamo.put_item(@t_name,vertex)
@@ -67,17 +70,17 @@ defmodule Ddb do
   def add_edge(graph,a,b,label) do
     #TODO: perfect case for using Tasks and concurrency
     # setup out edges for a
-    map = Map.merge(label,%{created_at: Timex.Time.now(:secs),id: "out_edge-#{a.id}",r: "#{b.id}_#{Poison.encode!(label)}"}) 
-    edge = struct(Ddb.E,map)
-    Logger.debug inspect edge
-    {:ok,%{}} = Dynamo.put_item(@t_name,edge)
-  
+    out_edge = Map.merge(%Ddb.E{},%{created_at: Timex.Time.now(:secs),id: "out_edge-#{a.id}",r: "#{b.id}_#{Poison.encode!(label)}"})
+    #edge = struct(Ddb.E,map)
+    Logger.debug inspect out_edge
+    {:ok,%{}} = Dynamo.put_item(@t_name,out_edge)
+
     # setup in_edges for b
-    map = Map.merge(map,%{id: "in_edge_#{b.id}",r: "#{a.id}_#{Poison.encode!(label)}"})
-    in_edge = struct(Ddb.E,map)
+    in_edge = Map.merge(%Ddb.E{},%{id: "in_edge_#{b.id}",r: "#{a.id}_#{Poison.encode!(label)}"})
+    #in_edge = struct(Ddb.E,map)
     Logger.debug inspect in_edge
     {:ok,%{}} = Dynamo.put_item(@t_name,in_edge)
-  
+
     # setup neightbors
     map = %{id: "#{a.id}_nbr",r: b.id}
     a_nbr = struct(Ddb.N,map)
@@ -86,14 +89,14 @@ defmodule Ddb do
     map = %{id: "#{b.id}_nbr",r: a.id}
     a_nbr = struct(Ddb.N,map)
     {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
-    edge
+    out_edge
   end
   def out(graph,vertex) do
     eav = [id: "#{vertex.id}_nbr"]
     kce = "id = :id "
     r = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
-      key_condition_expression: kce) 
+      key_condition_expression: kce)
   end
   def inn(graph,vertex) do
     eav = [id: "#{vertex.id}_nbr"]
@@ -105,16 +108,23 @@ defmodule Ddb do
   def v(graph,map) when is_map(map) do
     v_id(graph,{map.id,map.r})
   end
+  def v_id(graph,{nil,_}) do
+    raise "v_id/2 can't go fetch a vertex with nil as the id!"
+  end
   def v_id(graph,{id,r}) do
+    Logger.debug "getting item\n\tid: #{inspect id}\n\tr: #{inspect r}"
     map = Dynamo.get_item!(@t_name,%{id: id,r: r})
-      #|> Dynamo.Decoder.decode() |> keys_to_atoms
-      |> Dynamo.Decoder.decode(as: Ddb.V)
+      |> Dynamo.Decoder.decode() |> keys_to_atoms
+    Logger.debug("raw item: #{inspect map,pretty: true}")
+    # preserve additional attributes by not using as:
+    map = Map.merge(%Ddb.V{},map)
+      #|> Dynamo.Decoder.decode(as: Ddb.V)
     Map.put(graph,:stream,[map])
   end
   @doc "this should be @hack tagged"
   def keys_to_atoms(map) do
     Enum.reduce(Map.keys(map),%{}, fn(key,acc) ->
-      Map.put(acc,String.to_existing_atom(key),map[key]) 
+      Map.put(acc,String.to_existing_atom(key),map[key])
     end)
   end
   @doc "hack to keep range keys but not require them"
@@ -153,17 +163,22 @@ defmodule Ddb do
       expression_attribute_values: eav,
       key_condition_expression: kce)
     #Logger.debug "raw Dynamo stream\n\n\n" <> inspect Enum.to_list stream
-    stream = Stream.map(stream, &Dynamo.Decoder.decode(&1,as: Ddb.E))
-    #Logger.debug "as Ddb.E stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
+    #stream = Stream.map(stream, &Dynamo.Decoder.decode(&1,as: Ddb.E))
+    stream = Stream.map(stream,fn(raw) ->
+      map = Dynamo.Decoder.decode(raw) 
+      s = Dynamo.Decoder.decode(raw,as: Ddb.E)
+      Map.merge(s,raw)
+    end)
+    Logger.debug "as Ddb.E stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
     stream = Stream.map(stream, &({&1.id,&1.r}))
     #Logger.debug "to go into graph stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
-  
+
     Map.put(graph,:stream,stream)
   end
 
   @doc "get label, labels should be used for indexing mostly"
   def outE(graph,label_key) when is_atom(label_key)do
-    Logger.debug "outE(:lbl)\n\t'G'" <> inspect graph 
+    Logger.debug "outE(:lbl)\n\t'G'" <> inspect graph
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
       # TODO: seems like a hack but not sure how to get the matching labels
       # need a manditory :label attribute or something
@@ -196,19 +211,19 @@ defmodule Ddb do
     #Logger.debug "done"
     Map.put(graph,:stream,stream)
   end
+  @doc "compares a list of edge pointers to a map to see if the attributes and values exist in the edge"
   defp check_edges(edges,match_map) do
     Stream.map(edges.stream,fn(edge_pointer) ->
-      #Logger.debug "edge pointer: #{inspect edge_pointer}"
+      Logger.debug "edge pointer: #{inspect edge_pointer}"
         edge = parse_pointer(edge_pointer)
         #test if edge matches
         case mmatch(edge["label"],match_map) do
           true ->
-            #Logger.debug "match: #{}\n\t#{inspect edge_pointer}"
+            Logger.debug "match: #{}\n\t#{inspect edge_pointer}"
             # TODO: consider option to return %Trabant.E vs edge pointer
             #%Trabant.E{pointer: pointer, a: a, b: b, label: label}
- 
             edge_pointer
-         false -> 
+         false ->
            #Logger.debug "no match #{inspect edge_pointer}\n\te:  #{inspect edge, pretty: true}"
            nil
        end
@@ -216,6 +231,9 @@ defmodule Ddb do
   end
   @out_reg ~r/^(?<out_id>.*)_(?<label>.*)/
   @id_reg ~r/^out_edge-(?<id>.*)$/
+  def parse_pointer({nil,_}) do
+    raise "nil no workie in parse_pointer/1"
+  end
   def parse_pointer({a,b}) do
     map = Regex.named_captures(@id_reg,a) |> Map.merge(Regex.named_captures(@out_reg,b))
     #Logger.debug "parse_pointer \n\t#{inspect a} \n\t#{inspect b}\n\t#{inspect map}"
@@ -245,14 +263,14 @@ defmodule Ddb do
     #TODO need a regex here
     [_,a_id] = String.split(id,"-")
     [b_id|t] = String.split(r,"_")
-    
+
     #%Trabant.E{pointer: pointer, a: a, b: b, label: label}
   end
   def q(graph,map) do
     eav = Map.to_list(map)
     kce = map |> Enum.map(fn({k,v})-> "#{k} = :#{k}" end) |> Enum.join(",")
     Logger.debug "eav: #{inspect eav}\nkce: #{inspect kce}"
-    r = Dynamo.stream_query(@t_name, 
+    r = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
       key_condition_expression: kce)
   end

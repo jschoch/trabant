@@ -1,5 +1,21 @@
 defmodule Hel do
   import Trabant
+  @m %{id: "1",name: "Bob",r: "0"}
+  @m2  %{id: "2",name: "Biff",r: "0"}
+  @m3  %{id: "3",nick: "Brock",r: "0"}
+  @edge_label %{type: "foo"}
+  def create_data do
+    graph = Trabant.new("graph")
+    create_v(graph,@m)
+    create_v(graph,@m2)
+    create_v(graph,@m3)
+    e = add_edge(graph,@m,@m2,@edge_label)
+    e2 = add_edge(graph,@m,@m2,%{type: :bar})
+    e3 = add_edge(graph,@m,@m2,%{lbl: :baz})
+    e4 = add_edge(graph,@m,@m3,%{lbl: :unf})
+    e5 = add_edge(graph,@m3,@m,%{lbl: :back_at_you})
+    graph
+  end
   def createG do
     saturn = %{id: 1,name: "Saturn",age: 10000,type: :titan}
     jupiter = %{id: 2,name: "Jupiter", type: :god, age: 5000}
