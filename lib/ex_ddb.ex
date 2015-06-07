@@ -85,11 +85,11 @@ defmodule Ddb do
     {:ok,%{}} = Dynamo.put_item(@t_name,in_edge)
 
     # setup neightbors
-    map = %{id: "#{a.id}_nbr",r: b.id}
+    map = %{id: "#{a.id}_onbr",r: b.id}
     a_nbr = struct(Ddb.N,map)
     {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
 
-    map = %{id: "#{b.id}_nbr",r: a.id}
+    map = %{id: "#{b.id}_inbr",r: a.id}
     a_nbr = struct(Ddb.N,map)
     {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
     out_edge
@@ -97,6 +97,11 @@ defmodule Ddb do
   def decode_vertex(raw) do
     map = Dynamo.Decoder.decode(raw) |> keys_to_atoms
     Map.merge(%Ddb.V{},map)
+  end
+  @nid_reg ~r/^(?<id>.+)_[i|o]nbr$/
+  def id_from_neighbor(s) do
+    r = Regex.named_captures(@nid_reg,s)
+    r["id"]
   end
   def out(graph) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
@@ -107,26 +112,51 @@ defmodule Ddb do
     Map.put(graph,:stream,stream)
   end
   def out(graph,vertex) do
-    eav = [id: "#{vertex.id}_nbr"]
+    eav = [id: "#{vertex.id}_onbr"]
     kce = "id = :id "
     r = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
       key_condition_expression: kce)
     stream = Stream.flat_map(r,fn(raw) -> 
       item = Dynamo.Decoder.decode(raw,as: Ddb.N)
-      [id|tail] = String.split(item.id,"_")
+      #[id|tail] = String.split(item.id,"_")
+      id = id_from_neighbor(item.id)
       g = v_id(graph,id)
       g.stream
       #decode_vertex(raw) 
     end)
     Map.put(graph,:stream,stream)
   end
-  def inn(graph,vertex) do
-    eav = [id: "#{vertex.id}_nbr"]
+  @doc "get all neighbors with in edges from a stream of vertexes"
+  def inn(graph) do
+    stream = Stream.flat_map(graph.stream,fn(vertex) ->
+      inn(graph,vertex).stream
+    end)
+    Map.put(graph,:stream,stream)
+  end
+  @doc "get all neighbors with in edges from a single vertex"
+  def inn(graph,%Ddb.V{} = vertex) do
+    eav = [id: "#{vertex.id}_inbr"]
     kce = "id = :id "
     r = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
       key_condition_expression: kce)
+    stream = Stream.flat_map(r,fn(raw) ->
+      item = Dynamo.Decoder.decode(raw,as: Ddb.N)
+      g = v_id(graph,item.r)
+      g.stream
+    end)
+    Map.put(graph,:stream,stream)
+  end
+  @doc "get neighbors with matching attributes with in edges for mmap"
+  def inn(graph,mmap) when is_map(mmap) do
+    g = inn(graph)
+    stream = Stream.filter(g.stream,fn(vertex) ->
+      Logger.debug inspect vertex
+      mmatch(vertex,mmap)
+      #mmatch(mmap,vertex)
+    end)
+    Map.put(graph,:stream,stream)
   end
   def v(graph,map) when is_map(map) do
     v_id(graph,{map.id,map.r})
@@ -304,6 +334,18 @@ defmodule Ddb do
     r = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
       key_condition_expression: kce)
+    raise "TODO: not done yet"
+  end
+  def all_v(graph) do
+    Logger.debug "all_v runs a full table scan!"
+    eav = [r: "0"]
+    r = Dynamo.stream_scan(@t_name,
+      filter_expression: "r = :r",
+      expression_attribute_values: eav)
+    stream = Stream.map(r,fn(raw) ->
+      decode_vertex(raw)
+    end)
+    Map.put(graph,:stream,stream)
   end
   #  Example of stream_query
   #

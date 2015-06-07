@@ -95,7 +95,7 @@ defmodule OuteTest do
   end
   test "sort works" do
     graph = Trabant.new
-    Enum.each(1..100,&(create_v(graph,%{id: &1})))
+    Enum.each(1..100,&(create_v(graph,%{id: Integer.to_string(&1)})))
     result = graph |> all_v |> sort |>  limit(2) |> res
     assert result.count == 2
   end
@@ -105,11 +105,11 @@ defmodule OuteTest do
     [jupiter] = graph |> v_id("2") |> data
     [pluto] = graph |> v_id("10") |> data
 
-    ins = graph |> v_id(2) |> inn |> data
-    ids = Enum.filter_map(ins,&(&1.id in [10,5]),&(&1.id))
-    assert ids == [10,5], "doh! #{inspect ids}"
+    ins = graph |> v_id("2") |> inn |> data
+    ids = Enum.filter_map(ins,&(&1.id in ["10","5"]),&(&1.id))
+    assert ids == ["5","10"], "doh! #{inspect ids}\n\t#{inspect ins,pretty: true}"
     [herc] = graph |> v_id("2") |> inn(%{type: "demigod"}) |> data
-    assert herc.id == 5
+    assert herc.id == "5"
   end
   test " graph() returns %Trabant.G{}" do
     graph = graph()
@@ -148,6 +148,9 @@ defmodule OuteTest do
     got = v(graph,v) |> outE |> data
     assert got == []
     #TODO: consider adding tests to make sure we don't delete :index edge, or the edge to the terminal node
+  end
+  test "ensure delete cleans out neighbors" do
+    assert false, "TODO ensure no latent neighbors"
   end
   test "where works" do
     # graph |> v(where: {:age,:gt,10})

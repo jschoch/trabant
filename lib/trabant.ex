@@ -133,10 +133,19 @@ defmodule Trabant do
   #
 
   @doc "looks for all key/val pairs in test in target, returns true if they all match"
+  def mmatch(target,test) when is_map(target) do
+    list = Map.to_list(target)
+    mmatch(list,test)
+  end
   def mmatch(target,test) do
     #%{foo: :foo,bar: :bar} |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in %{foo: :foo} end)
     #Enum.all?(map, &Enum.member?(%{foo: :foo, bar: :bar), &1))
-    test |> Map.to_list |> Enum.reduce(true,fn(p,acc) -> acc = acc && p in target end)
+    Map.to_list(test)
+      |> Enum.reduce(true,fn(p,acc) -> 
+        Logger.debug inspect [acc,p,target]
+        acc = acc && p in target 
+      end)
+
   end
   @doc "process stream result into enum, collect md and counts etc"
   def res(%Trabant.G{} = graph) do
