@@ -199,4 +199,35 @@ defmodule Trabant do
     create_v(graph,opts.child)
     add_edge(graph,source,opts.child,opts.label)
   end
+
+
+  #  ID related functions
+  @id_types  %{
+    default: "a",
+    node: "a",
+    out_edge: "b",
+    in_edge: "c",
+    label: "d",
+    out_neighbor: "e",
+    in_neighbor: "f"
+  }
+  @post_types %{
+    default: "a"
+
+  }
+  def create_id(type \\:node) when is_atom(type) do
+    id = UUID.uuid4 |> UUID.info!
+    Logger.debug "id: #{inspect id[:binary]}"
+    @id_types[type] <> id[:binary] <> @post_types[:default]
+  end
+  #def parse_id(<< id_type :: binary-size(1), id :: binary-size(16), post :: binary-size(1) >> = id) when is_binary(id) do
+    #%{}
+  #end
+  def parse_id(s) when is_binary(s) do
+    << id_type :: binary-size(1), id :: binary-size(16), post :: binary-size(1) >> = s
+    %{id_type: id_type, bid: id,sid: UUID.binary_to_string!(id,:hex), post: post}
+  end
+  def parse_id(x) do
+    raise "bad id " <> inspect x
+  end
 end

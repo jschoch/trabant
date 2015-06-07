@@ -32,6 +32,7 @@ defmodule Trabant.Mixfile do
     {:benchmark,github: "mzruya/elixir-benchmark"},
     {:mdigraph,git: "https://github.com/jschoch/erlang-mdigraph"},
     #{:ex_aws,"~> 0.0.5"},
+    {:uuid, "~> 1.0"},
     {:httpoison, "~> 0.6.2"},
     {:ex_aws,github: "CargoSense/ex_aws"},
     {:poison, "~> 1.4.0"}

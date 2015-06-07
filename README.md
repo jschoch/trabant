@@ -35,4 +35,27 @@ Trabant
     [herc] = graph |> v_id(2) |> inn(%{type: :demigod}) |> data
     assert herc.id == 5
 
+
 ```
+
+random thoughts:
+
+thoughts on binary key conventions
+
+id
+
+<< id_type :: binary-size(1), id :: binary-size(16), post :: binary-size(1) >>
+
+
+id_types: 
+
+atom  | description
+------|---------------------
+:node | normal node
+:out_edge | id for an outbound edge V --:outbound_from_V--> X
+:in_edge | id for an inbound edge X <--:inbound_from_v-- V
+:label| special node for grouping normal nodes
+:in_neighbor | 
+:out_neightbor | 
+:default| the default type
+

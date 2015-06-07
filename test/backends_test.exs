@@ -99,7 +99,7 @@ defmodule OuteTest do
     result = graph |> all_v |> sort |>  limit(2) |> res
     assert result.count == 2
   end
-  test "inn works" do
+  test "inn and inn(%{filter: :on}) works" do
     graph = Hel.createG
     [alcmene] = graph |> v_id("9") |> data
     [jupiter] = graph |> v_id("2") |> data
@@ -117,7 +117,7 @@ defmodule OuteTest do
   end
   test "update works" do
     graph = Trabant.new
-    alcemene = %{id: "1",type: :human}
+    alcemene = Map.merge(%Ddb.V{},%{id: "1",r: "0",type: "human"})
     Trabant.create_v(graph,alcemene)
     updated_alcemene = Map.put(alcemene,:foo,"FOOOOOO")
     update_v(graph,updated_alcemene)
@@ -127,15 +127,24 @@ defmodule OuteTest do
   end
   test "delete vertex works" do
     graph = Trabant.new
-    v = %{id: "1",type: :human}
+    v = Map.merge(%Ddb.V{},%{id: "1",type: :human})
     create_v(graph,v)
-    del_v(graph,v.id)
+    del_v(graph,v)
     got_v = graph |> v_id("1") |> data
     assert got_v == []
     create_v(graph,v)
     del_v(graph,v)
     got_v = graph |> v_id("1") |> data
     assert got_v == []
+  end
+  test "id's work as expected" do
+    raise """
+      
+    need to figure out how we want to work with id's and Trabant.create_id, an dTrabant.parse_id
+
+    first thing to figure  out is if we want to use 16 byte bitstrings, or 32 byte UTF8 binaries
+
+    """
   end
   test "delete edge works" do
     graph = Trabant.new

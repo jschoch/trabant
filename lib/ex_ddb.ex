@@ -1,7 +1,7 @@
 defmodule Ddb.V do
   @derive [ExAws.Dynamo.Encodable]
   #defstruct [:id,:r, :created_at]
-  defstruct id: nil, r: nil, created_at: Timex.Time.now(:secs)
+  defstruct id: nil, r: "0", created_at: Timex.Time.now(:secs)
 end
 defmodule Ddb.E do
   @derive [ExAws.Dynamo.Encodable]
@@ -66,9 +66,7 @@ defmodule Ddb do
     test_id(id)
     r = "0"
     vertex = %Ddb.V{created_at: Timex.Time.now(:secs),r: r} |> Map.merge(term)
-    res = Dynamo.put_item(@t_name,vertex)
-    Logger.info inspect res
-    vertex
+    create_v(graph,vertex)
   end
   def add_edge(graph,a,b,label) do
     #TODO: perfect case for using Tasks and concurrency
@@ -93,6 +91,9 @@ defmodule Ddb do
     a_nbr = struct(Ddb.N,map)
     {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
     out_edge
+  end
+  def decode_vertex({:ok, %{}}) do
+    raise "empty"
   end
   def decode_vertex(raw) do
     map = Dynamo.Decoder.decode(raw) |> keys_to_atoms
@@ -158,8 +159,38 @@ defmodule Ddb do
     end)
     Map.put(graph,:stream,stream)
   end
+  def update_v(graph) do
+    stream = Stream.flat_map(graph.stream, fn(vertex) ->
+      update_v(graph,vertex).stream
+    end)
+    Map.put(graph,:stream,stream)
+  end
+  def update_v(graph,%Ddb.V{id: id} = vertex) do
+    Logger.warn "update should update, but we have it putting a new item instead"
+    create_v(graph,vertex)
+    #Dynamo.update_item(@t_name,id, 
+  end
+  @doc "deletes a list of vertexes from a stream" 
+  def del_v(graph) do
+    Stream.each(graph.stream,fn(vertex) ->
+      del_v(graph,vertex)
+    end)
+    #TODO: do we need to put in some metadata here?
+    Map.put(graph,:stream,[])
+  end
+  @doc "deletes a vertex"
+  def del_v(graph,%Ddb.V{id: id,r: r}) do
+    Dynamo.delete_item(@t_name,[id: id,r: r])
+    raise "need to delete edges and neighbors"
+  end
   def v(graph,map) when is_map(map) do
     v_id(graph,{map.id,map.r})
+  end
+  @doc "this should be @hack tagged"
+  def keys_to_atoms(map) do
+    Enum.reduce(Map.keys(map),%{}, fn(key,acc) ->
+      Map.put(acc,String.to_existing_atom(key),map[key])
+    end)
   end
   def v_id(graph,{nil,_}) do
     raise "v_id/2 can't go fetch a vertex with nil as the id!"
@@ -172,15 +203,13 @@ defmodule Ddb do
     ## preserve additional attributes by not using as:
     #map = Map.merge(%Ddb.V{},map)
       #|> Dynamo.Decoder.decode(as: Ddb.V)
-
-    map = Dynamo.get_item!(@t_name,%{id: id, r: r}) |> decode_vertex
-    Map.put(graph,:stream,[map])
-  end
-  @doc "this should be @hack tagged"
-  def keys_to_atoms(map) do
-    Enum.reduce(Map.keys(map),%{}, fn(key,acc) ->
-      Map.put(acc,String.to_existing_atom(key),map[key])
-    end)
+    case Dynamo.get_item(@t_name,%{id: id, r: r}) do
+      {:ok,%{}} -> stream = []
+      raw -> stream = [decode_vertex(raw)]
+    end
+    #map = Dynamo.get_item!(@t_name,%{id: id, r: r}) 
+      #|> decode_vertex
+    Map.put(graph,:stream,stream)
   end
   @doc "hack to keep range keys but not require them"
   def v_id(graph,id) when is_binary(id) do
