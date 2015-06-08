@@ -14,9 +14,11 @@ defmodule BackendsTest do
     :ok
   end
 
-  @m %{id: "1",name: "Bob",r: "0"}
-  @m2  %{id: "2",name: "Biff",r: "0"}
-  @m3  %{id: "3",nick: "Brock",r: "0"}
+  require Hel
+
+  @m Hel.maps.m
+  @m2  Hel.maps.m2
+  @m3  Hel.maps.m3
   @edge_label %{type: "foo"}
 
   import Trabant

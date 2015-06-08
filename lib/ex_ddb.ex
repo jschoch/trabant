@@ -40,17 +40,17 @@ defmodule Ddb do
       true -> Dynamo.stream_scan(@t_name) |> Enum.map(&Dynamo.Decoder.decode(&1))
     end
   end
-  @test_id_reg ~r/_/
-  def test_id(id) do
-    case Regex.match?(@test_id_reg,id) do
-      true -> raise "bad id: we suck and cant' deal with _ in id: #{inspect id}"
-      false -> nil
+  def test_id(id) when is_binary(id) do
+    Logger.debug "testing id: #{id}"
+    case byte_size(id) == 33 do
+      false -> raise "need 33 byte binary for id, consider using create_string_id\n\tid: #{id}"
+      true -> nil
     end
   end
+  def test_id(id) do
+    raise "can't create id, only supporting 33 byte strings right now" 
+  end
   def create_v(graph,term,label \\[])
-  #def create_v(graph,term,label \\[]) do
-    #create_v(graph,term,label)
-  #end
   def create_v(graph,%{id: id}, label) when is_number(id) do
     raise "can't use integer id's until we workout how to get the table creation types aligned and correct"
   end
@@ -185,7 +185,10 @@ defmodule Ddb do
     raise "need to delete edges and neighbors"
   end
   def v(graph,map) when is_map(map) do
-    v_id(graph,{map.id,map.r})
+    case Map.has_key?(map,:r) do
+      true -> v_id(graph,{map.id,map.r})
+      false -> v_id(graph,map.id)
+    end
   end
   @doc "this should be @hack tagged"
   def keys_to_atoms(map) do

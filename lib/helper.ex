@@ -1,8 +1,15 @@
 defmodule Hel do
   import Trabant
-  @m %{id: "1",name: "Bob",r: "0"}
-  @m2  %{id: "2",name: "Biff",r: "0"}
-  @m3  %{id: "3",nick: "Brock",r: "0"}
+  @m %{id: create_string_id,name: "Bob",r: "0"}
+  @m2  %{id: create_string_id,name: "Biff",r: "0"}
+  @m3  %{id: create_string_id,nick: "Brock",r: "0"}
+  def maps do
+    %{
+      m: @m,
+      m2: @m2,
+      m3: @m3
+    }
+  end
   @edge_label %{type: "foo"}
   def create_data do
     graph = Trabant.new("graph")
@@ -16,17 +23,30 @@ defmodule Hel do
     e5 = add_edge(graph,@m3,@m,%{lbl: :back_at_you})
     graph
   end
+  @gods %{
+    saturn: create_string_id,
+    alcmene: create_string_id,
+    jupiter: create_string_id,
+    hurcules: create_string_id,
+    pluto: create_string_id
+  }
+  def gods do
+    @gods
+  end
+  
+
   def createG do
-    saturn = %{id: "1",r: "0",name: "Saturn",age: 10000,type: :titan}
-    jupiter = %{id: "2",r: "0",name: "Jupiter", type: :god, age: 5000}
-    sky = %{id: "3",r: "0",name: "sky",type: :location}
-    sea = %{id: "4",r: "0",name: "sea",type: :location}
-    hercules = %{id: "5",r: "0",name: "Hercules", type: :demigod, age: 30}
-    nemean = %{id: "6",r: "0",name: "Nemean", type: :monster}
-    cerberus = %{id: "7",r: "0",name: "Cerberus", type: :monster}
-    hydra = %{id: "8",r: "0",name: "Hydra", type: :monster}
-    alcmene = %{id: "9",r: "0",name: "Alcmene",age: 45,type: :human}
-    pluto = %{id: "10",r: "0",name: "Pluto",age: 4000, type: :god}
+    saturn = %{id: @gods.saturn,r: "0",name: "Saturn",age: 10000,type: :titan}
+    jupiter = %{id: @gods.jupiter,r: "0",name: "Jupiter", type: :god, age: 5000}
+    sky = %{id: create_string_id,r: "0",name: "sky",type: :location}
+    sea = %{id:  create_string_id,r: "0",name: "sea",type: :location}
+    hercules = %{id: @gods.hurcules,r: "0",name: "Hercules", type: :demigod, age: 30}
+    nemean = %{id: create_string_id,r: "0",name: "Nemean", type: :monster}
+    cerberus = %{id: create_string_id,r: "0",name: "Cerberus", type: :monster}
+    hydra = %{id: create_string_id,r: "0",name: "Hydra", type: :monster}
+    # old id 9
+    alcmene = %{id: @gods.alcmene,r: "0",name: "Alcmene",age: 45,type: :human}
+    pluto = %{id: @gods.pluto,r: "0",name: "Pluto",age: 4000, type: :god}
     nodes = [
       saturn,
       sky,
