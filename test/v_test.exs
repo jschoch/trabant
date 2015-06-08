@@ -27,6 +27,7 @@ defmodule VTest do
 
     result = graph |> v(@m) |> res
     assert result != nil
+    IO.puts inspect result, pretty: true
     [vertex] = result.data
     assert vertex != nil
     assert vertex.id == @m.id, "wrong result #{inspect vertex}"

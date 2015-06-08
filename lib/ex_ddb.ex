@@ -96,7 +96,8 @@ defmodule Ddb do
     raise "empty"
   end
   def decode_vertex(raw) do
-    map = Dynamo.Decoder.decode(raw) |> keys_to_atoms
+    map = Dynamo.Decoder.decode(raw) 
+      |> keys_to_atoms
     Map.merge(%Ddb.V{},map)
   end
   @nid_reg ~r/^(?<id>.+)_[i|o]nbr$/
@@ -204,8 +205,14 @@ defmodule Ddb do
     #map = Map.merge(%Ddb.V{},map)
       #|> Dynamo.Decoder.decode(as: Ddb.V)
     case Dynamo.get_item(@t_name,%{id: id, r: r}) do
-      {:ok,%{}} -> stream = []
-      raw -> stream = [decode_vertex(raw)]
+      {:ok,map} when map == %{} -> 
+        Logger.warn "empty result for #{inspect [id,r]}"
+        stream = []
+      {:ok,raw} when is_map(raw) ->
+      #raw -> 
+        Logger.debug inspect raw
+        stream = [decode_vertex(raw["Item"])]
+      doh -> raise "the horror #{inspect doh}"
     end
     #map = Dynamo.get_item!(@t_name,%{id: id, r: r}) 
       #|> decode_vertex
