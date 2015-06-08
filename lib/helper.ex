@@ -1,8 +1,8 @@
 defmodule Hel do
   import Trabant
-  @m %{id: create_string_id,name: "Bob",r: "0"}
-  @m2  %{id: create_string_id,name: "Biff",r: "0"}
-  @m3  %{id: create_string_id,nick: "Brock",r: "0"}
+  @m %{id: create_string_id,name: "Bob",r: "0",i: "m"}
+  @m2  %{id: create_string_id,name: "Biff",r: "0",i: "m2"}
+  @m3  %{id: create_string_id,nick: "Brock",r: "0",i: "m3"}
   def maps do
     %{
       m: @m,
@@ -16,11 +16,11 @@ defmodule Hel do
     create_v(graph,@m)
     create_v(graph,@m2)
     create_v(graph,@m3)
-    e = add_edge(graph,@m,@m2,@edge_label)
-    e2 = add_edge(graph,@m,@m2,%{type: :bar})
-    e3 = add_edge(graph,@m,@m2,%{lbl: :baz})
-    e4 = add_edge(graph,@m,@m3,%{lbl: :unf})
-    e5 = add_edge(graph,@m3,@m,%{lbl: :back_at_you})
+    e = add_edge(graph,@m,@m2,:xxx,@edge_label)
+    e2 = add_edge(graph,@m,@m2,:con,%{type: :bar})
+    e3 = add_edge(graph,@m,@m2,:unf,%{lbl: :baz})
+    e4 = add_edge(graph,@m,@m3,:unf,%{lbl: :unf})
+    e5 = add_edge(graph,@m3,@m,:back_at_you,%{lbl: :back_at_you})
     graph
   end
   @gods %{
@@ -60,23 +60,23 @@ defmodule Hel do
       nemean
     ]
     edges = [
-      {jupiter,saturn,%{relation: "father"}},
-      {jupiter,sky,%{relation: "lives",reason: "loves fresh breezes"}},
-      {jupiter,pluto,%{relation: "brother"}},
-      {pluto, jupiter,%{relation: "brother"}},
-      {pluto, cerberus,%{relation: "pet"}},
-      {hercules,jupiter,%{relation: "father"}},
-      {hercules,alcmene,%{relation: "mother"}},
-      {hercules, nemean, %{relation: "battled"}},
-      {hercules, hydra,%{relation: "battled"}},
-      {hercules, cerberus,%{relation: "battled"}}
+      {jupiter,saturn,:father,%{relation: "father"}},
+      {jupiter,sky,:lives,%{relation: "lives",reason: "loves fresh breezes"}},
+      {jupiter,pluto,:brother,%{relation: "brother"}},
+      {pluto, jupiter,:brother,%{relation: "brother"}},
+      {pluto, cerberus,:pet,%{relation: "pet"}},
+      {hercules,jupiter,:father,%{relation: "father"}},
+      {hercules,alcmene,:mother,%{relation: "mother"}},
+      {hercules, nemean,:battled, %{relation: "battled"}},
+      {hercules, hydra,:battled,%{relation: "battled"}},
+      {hercules, cerberus,:battled,%{relation: "battled"}}
     ]
     g = new("graph")
     Enum.each(nodes, &(Trabant.create_v(g,&1)))
     #IO.puts inspect Trabant.all_v(g) |> data
     #Enum.each(edges, &(Trabant.add_edge(g,&1)))
-    Enum.each(edges, fn({a,b,label}) ->
-      Trabant.add_edge(g,a,b,label)
+    Enum.each(edges, fn({a,b,label,map}) ->
+      Trabant.add_edge(g,a,b,label,map)
     end)
     g
   end

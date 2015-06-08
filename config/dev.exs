@@ -7,3 +7,5 @@ config :zdb,
   ddb_key: 'ddb_local_' ++ (Mix.env|>Atom.to_string|> String.to_char_list),
   ddb_skey: 'ddb_local_' ++ (Mix.env|>Atom.to_string|> String.to_char_list)
 
+config :logger,
+  level: :info

@@ -125,20 +125,6 @@ defmodule OuteTest do
     assert alcemene != got_alcemene
     assert got_alcemene == updated_alcemene
   end
-  test "id's work as expected" do
-    id = create_binary_id(:node)
-    assert byte_size(id) == 17
-    parsed = parse_id(id)
-    assert byte_size(parsed.bid) == 16
-    assert is_bitstring(id)
-    id = create_string_id()
-    s = parse_id(id)
-    assert is_binary(s.sid) , "wrong type: #{inspect s.sid}"
-    assert byte_size(s.sid) == 32
-    id_type = id_type?(id)
-    assert id_type == :node
-    IO.puts inspect parsed,pretty: true
-  end
   test "delete vertex works" do
     graph = Trabant.new
     v = Map.merge(%Ddb.V{},%{id: "1",type: :human})

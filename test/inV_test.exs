@@ -14,9 +14,9 @@ defmodule VTest do
     :ok
   end
 
-  @m %{id: "1",name: "Bob",r: "0"}
-  @m2  %{id: "2",name: "Biff",r: "0"}
-  @m3  %{id: "3",nick: "Brock",r: "0"}
+  @m Hel.maps.m
+  @m2  Hel.maps.m2
+  @m3  Hel.maps.m3
   @edge_label %{type: "foo"}
 
   import Trabant
@@ -25,7 +25,6 @@ defmodule VTest do
     g = graph
       |> v(@m)
       |> outE
-      #|> outE(@m)
       |> inV
     result = data(g)
     assert result != nil
@@ -45,7 +44,12 @@ defmodule VTest do
   end
   test "inV(%{foo: \"foo\"}) works" do
     graph = Hel.create_data
-    [item] = graph |> v(@m) |> outE |> inV(%{name: "Bob"}) |> data
-    assert item.id == @m.id 
+    r = graph |> v(@m) 
+      |> outE 
+      |> inV(%{name: "Biff"}) 
+      |> data
+    assert r != [], "empty result! was []"
+    [item] = r
+    assert item.id == @m2.id 
   end
 end

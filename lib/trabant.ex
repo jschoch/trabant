@@ -52,11 +52,11 @@ defmodule Trabant do
   def graph(graph) do
     Trabant.backend.graph(graph)
   end
-  def add_edge(graph,{a,b,label}) do
-    Trabant.backend.add_edge(graph,{a,b,label})
+  def add_edge(graph,{a,b,label,map}) do
+    Trabant.backend.add_edge(graph,a,b,label,map)
   end
-  def add_edge(graph,a,b,label) do
-    Trabant.backend.add_edge(graph,a,b,label)
+  def add_edge(graph,a,b,label,term \\%{}) do
+    Trabant.backend.add_edge(graph,a,b,label,term)
   end
   def v(map) when is_map(map) do
     Trabant.backend.v(map)
@@ -251,5 +251,11 @@ defmodule Trabant do
   end
   def parse_id(x) do
     raise "bad id " <> inspect x
+  end
+  def cast_id(<< id_type :: binary-size(1), id :: binary-size(32) >> ,t) when is_atom(t) do
+    @id_types[t] <> id
+  end
+  def cast_id(s,a) do
+    raise "cast_id: bad id: #{inspect [s,a]}"
   end
 end
