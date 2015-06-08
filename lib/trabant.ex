@@ -195,9 +195,9 @@ defmodule Trabant do
   end
   @doc "creates a vertex and links via edges %{id: <parent id>,child: <map should be enforced>,label: <edge label>"
   def create_child(graph, opts) when is_map(opts) do
-    [source] = v_id(graph,opts.id) |> data
+    #[source] = v_id(graph,opts.id) |> data
     create_v(graph,opts.child)
-    add_edge(graph,source,opts.child,opts.label)
+    add_edge(graph,opts.id,opts.child.id,opts.label)
   end
 
 

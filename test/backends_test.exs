@@ -11,37 +11,50 @@ defmodule OuteTest do
   setup do
     Trabant.delete_graph
     Trabant.new
+    #Hel.createG 
     :ok
   end
-
+  require Hel
   @m Hel.maps.m
   @m2  Hel.maps.m2
   @m3  Hel.maps.m3
   @edge_label %{type: "foo"}
-
+  @gods Hel.gods
   import Trabant
 
   test " v_id > outE(mmap) |> inV works" do
-    graph = Hel.createG
-    [alcmene] = graph |> v_id("9") |> data
-    [jupiter] = graph |> v_id("2") |> data
+    Hel.createG
+    graph = graph
+    [alcmene] = graph |> v_id(@gods.alcmene) |> data
+    [jupiter] = graph |> v_id(@gods.jupiter) |> data
 
     #should be the same as out()
-    result = graph |> v_id("2") |> outE |> inV |> res
+    result = graph |> v_id(@gods.jupiter) 
+      |> outE 
+      |> inV 
+      |> res
     assert result.count == 3, "wrong count #{inspect result}"
 
     # test map match
-    result = graph |> v_id("2") |> outE(%{relation: "brother"}) |> inV |> res
+    result = graph |> v_id(@gods.jupiter) 
+      |> outE(%{"relation" => "brother"}) 
+      |> inV 
+      |> res
     assert result.count == 1, "wrong count #{inspect result}"
   end
+  test "ensure we don't clobber :label" do
+    assert false, "TODO: implement me"
+  end
   test "create_child works" do
-    graph = Trabant.new
-    source = %{id: "1"}
+    graph = graph
+    aid = create_string_id
+    source = %{id: aid}
     create_v(graph,source)
-    v = %{id: "2"}
-    label = %{test: :test}
+    bid = create_string_id
+    v = %{id: bid}
+    label = :test
     create_child(graph,%{id: source.id,child: v,label: label})
-    [got] = graph |> v_id("2") |> data
+    [got] = graph |> v_id(bid) |> data
     assert v.id == got.id
   end
   test "can't use :index_id for vertex" do
@@ -55,8 +68,9 @@ defmodule OuteTest do
     end
   end
   test "create_v actually creates edges" do
-    graph = Trabant.new
-    v = %{id: "1",node: :foo}
+    graph = graph
+    aid = create_string_id
+    v = %{id: aid,node: :foo}
     create_v(graph,v)
     case Trabant.backend do
       Mdigraph ->
@@ -67,78 +81,93 @@ defmodule OuteTest do
     end
   end
   test "data convenience works" do
-    graph = Hel.createG
-    [alcmene] = graph |> v_id("9") |> data
-    assert is_map(alcmene), "doh! #{inspect alcmene}"
+    graph = graph
+    id = create_string_id
+    create_v(graph,%{id: id})
+    r = graph |> v_id(id) |> data
+    assert r != []
+    [v] = r
+    assert is_map(v), "doh! #{inspect v}"
+    assert v.id == id
   end
   test "out works" do
-    graph = Hel.createG
-    list = graph |> v_id("2") |> out |> data
+    Hel.createG
+    graph = graph
+    list = graph |> v_id(@gods.pluto) |> out |> data
     assert list != nil
+    assert list != []
+    assert Enum.count(list) == 2,"wrong size: #{inspect list}"
 
   end
   test "first works" do
-    graph = Hel.createG
-    [alcmene] = graph |> v_id("9") |> data
-    [jupiter] = graph |> v_id("2") |> data
-    [pluto] = graph |> v_id("10") |> data
-
-    [first_v] = graph |> v_id("2") |> out |> first |> data
-    #TODO: need to ensure that pluto is the expected result
-    assert first_v.id == pluto.id, "wrong result #{inspect first_v}\n\texpected: #{pluto.id}\n\tgot: #{first_v.id}"
+    graph = graph
+    lst = Hel.createN(graph,5)
+    [a,b,c|d] = lst
+    create_child(graph,%{id: a,child: b,label: :pal})
+    create_child(graph,%{id: a,child: c,label: :pal})
+    r = graph |> v_id(a.id) |> out |> first |> data
+    assert r != [], "empty result! got []"
+    [first_v] = r
+    assert first_v.id == a.id, "wrong result #{inspect first_v}\n\texpected: #{a.id}\n\tgot: #{first_v.id}"
   end
   test "limit works" do
-    graph = Trabant.new
-    Enum.each(1..100,&(create_v(graph,%{id: Integer.to_string(&1)})))
+    graph = graph
+    Hel.createN(graph,20)
     result = graph |> all_v |> limit(2) |> res
     assert result.count == 2
   end
   test "sort works" do
-    graph = Trabant.new
-    Enum.each(1..100,&(create_v(graph,%{id: Integer.to_string(&1)})))
+    graph = graph
+    Hel.createN(graph,20)
     result = graph |> all_v |> sort |>  limit(2) |> res
     assert result.count == 2
   end
   test "inn and inn(%{filter: :on}) works" do
-    graph = Hel.createG
-    [alcmene] = graph |> v_id("9") |> data
-    [jupiter] = graph |> v_id("2") |> data
-    [pluto] = graph |> v_id("10") |> data
+    Hel.createG
+    graph = graph
+    [alcmene] = graph |> v_id(@gods.alcmene) |> data
+    [jupiter] = graph |> v_id(@gods.jupiter) |> data
+    [pluto] = graph |> v_id(@gods.pluto) |> data
 
-    ins = graph |> v_id("2") |> inn |> data
-    ids = Enum.filter_map(ins,&(&1.id in ["10","5"]),&(&1.id))
-    assert ids == ["5","10"], "doh! #{inspect ids}\n\t#{inspect ins,pretty: true}"
-    [herc] = graph |> v_id("2") |> inn(%{type: "demigod"}) |> data
-    assert herc.id == "5"
+    ins = graph |> v_id(@gods.alcmene) |> inn |> data
+    assert ins != [],"crap []"
+    ids = Enum.filter_map(ins,&(&1.id in [@gods.pluto,@gods.hurcules]),&(&1.id))
+    assert ids == [@gods.hurcules,@gods.pluto], "doh! #{inspect ids}\n\t#{inspect ins,pretty: true}"
+    [herc] = graph |> v_id(@gods.alcmene) |> inn(%{type: "demigod"}) |> data
+    assert herc.id == @gods.hercules
   end
   test " graph() returns %Trabant.G{}" do
     graph = graph()
     assert match?(%Trabant.G{}, graph)
   end
   test "update works" do
-    graph = Trabant.new
-    alcemene = Map.merge(%Ddb.V{},%{id: "1",r: "0",type: "human"})
-    Trabant.create_v(graph,alcemene)
-    updated_alcemene = Map.put(alcemene,:foo,"FOOOOOO")
-    update_v(graph,updated_alcemene)
-    [got_alcemene] = graph |> v_id("1") |> data
-    assert alcemene != got_alcemene
-    assert got_alcemene == updated_alcemene
+    graph = graph
+    id = create_string_id
+    alcmene = Map.merge(%Ddb.V{},%{id: id,type: "human"})
+    Trabant.create_v(graph,alcmene)
+    updated_alcmene = Map.put(alcmene,:foo,"FOOOOOO")
+    update_v(graph,updated_alcmene)
+    r = graph |> v_id(id) |> data
+    assert r != [], "crap []"
+    [got_alcmene] = r
+    assert alcmene != got_alcmene
+    assert got_alcmene == updated_alcmene
   end
   test "delete vertex works" do
-    graph = Trabant.new
-    v = Map.merge(%Ddb.V{},%{id: "1",type: :human})
+    graph = graph
+    aid = create_string_id
+    v = Map.merge(%Ddb.V{},%{id: aid,type: :human})
     create_v(graph,v)
     del_v(graph,v)
-    got_v = graph |> v_id("1") |> data
+    got_v = graph |> v_id(aid) |> data
     assert got_v == []
     create_v(graph,v)
     del_v(graph,v)
-    got_v = graph |> v_id("1") |> data
+    got_v = graph |> v_id(aid) |> data
     assert got_v == []
   end
   test "delete edge works" do
-    graph = Trabant.new
+    graph = graph
     v = %{id: "1",type: :human}
     child = %{id: "2", type: :monster}
     create_v(graph,v)

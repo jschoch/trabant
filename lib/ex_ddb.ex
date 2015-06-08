@@ -24,8 +24,11 @@ defmodule Ddb do
   @t_name "Graph-#{Mix.env}"
   alias ExAws.Dynamo
   require Logger
+  def graph do
+    %Trabant.G{g: %{table_name: @t_name, hash_key_name: "id",range_key_name: "r"}}
+  end
   def new() do
-    tbl = Dynamo.create_table(@t_name,[id: :hash,r: :range],[id: :string,r: :string], 1, 1)
+    tbl = Dynamo.create_table(@t_name,[id: :hash,r: :range],[id: :string,r: :string], 25, 25)
     #tbl = Dynamo.create_table(@t_name,[id: :hash],[id: :string], 1, 1)
     Logger.debug inspect tbl
     %Trabant.G{g: %{table_name: @t_name, hash_key_name: "id",range_key_name: "r"}}
@@ -131,10 +134,12 @@ defmodule Ddb do
       |> keys_to_atoms
     Map.merge(%Ddb.V{},map)
   end
-  @nid_reg ~r/^(?<id>.+)_[i|o]nbr$/
+  #@nid_reg ~r/^(?<id>.+)_[i|o]nbr$/
   def id_from_neighbor(s) do
-    r = Regex.named_captures(@nid_reg,s)
-    r["id"]
+    #r = Regex.named_captures(@nid_reg,s)
+    #r["id"]
+    Logger.info inspect s
+    cast_id(s,:node)
   end
   def out(graph) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
@@ -145,18 +150,16 @@ defmodule Ddb do
     Map.put(graph,:stream,stream)
   end
   def out(graph,vertex) do
-    eav = [id: "#{vertex.id}_onbr"]
+    eav = [id: cast_id(vertex.id,:out_neighbor)]
     kce = "id = :id "
     r = Dynamo.stream_query(@t_name,
       expression_attribute_values: eav,
       key_condition_expression: kce)
     stream = Stream.flat_map(r,fn(raw) -> 
       item = Dynamo.Decoder.decode(raw,as: Ddb.N)
-      #[id|tail] = String.split(item.id,"_")
-      id = id_from_neighbor(item.id)
-      g = v_id(graph,id)
+      r = id_from_neighbor(item.r)
+      g = v_id(graph,r)
       g.stream
-      #decode_vertex(raw) 
     end)
     Map.put(graph,:stream,stream)
   end

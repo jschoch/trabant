@@ -33,7 +33,11 @@ defmodule Hel do
   def gods do
     @gods
   end
-  
+  def createN(graph,n) do
+    Enum.map(1..n,fn(x) ->
+      create_v(graph,%{id: create_string_id,counter: x})
+    end)
+  end  
 
   def createG do
     saturn = %{id: @gods.saturn,r: "0",name: "Saturn",age: 10000,type: :titan}
@@ -80,14 +84,18 @@ defmodule Hel do
     end)
     g
   end
-  def veryBig() do
+  def veryBig(x,y,z) do
     g = new
-    Enum.each(1..1000,&(create_v(g,%{id: &1,type: :user})))
-    Enum.each(1..100,fn(id) ->
-      Enum.each(1..10000,fn(x) ->
-        random_id = :random.uniform(10000000) * x
+    list = Enum.into(1..x,HashDict.new,fn(it) ->
+        v = create_v(g,%{id: create_string_id,counter: it,type: :user})
+        {it,v}
+    end)
+    Enum.each(1..x,fn(outer) ->
+      id = list[outer].id
+      Enum.each(1..z,fn(inner) ->
+        random_id = create_string_id
         v = %{id: random_id,type: :image}
-        create_child(g,%{id: id, child: v,label: :image})
+        Trabant.create_child(g,%{id: id, child: v,label: :image})
       end)
     end)
     g
