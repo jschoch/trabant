@@ -1,11 +1,11 @@
 defmodule Ddb.V do
   @derive [ExAws.Dynamo.Encodable]
   #defstruct [:id,:r, :created_at]
-  defstruct id: nil, r: "0", created_at: Timex.Time.now(:secs)
+  defstruct id: nil, r: "0", created_at: Timex.Time.now(:secs),v_type: nil
 end
 defmodule Ddb.E do
   @derive [ExAws.Dynamo.Encodable]
-  defstruct id: nil, r: nil, label: nil,created_at: Timex.Time.now(:secs)
+  defstruct id: nil, r: nil, label: nil,created_at: Timex.Time.now(:secs),target_id: nil,e_type: nil
 
   # convert label values to existing atoms
   defimpl ExAws.Dynamo.Decodable do
@@ -17,7 +17,7 @@ end
 defmodule Ddb.N do
   @derive [ExAws.Dynamo.Encodable]
   #defstruct [:id,:r, :created_at]
-  defstruct id: nil, r: nil, created_at: Timex.Time.now(:secs)
+  defstruct id: nil, r: nil, created_at: Timex.Time.now(:secs),nbr_type: nil
 end
 defmodule Ddb do
   @behaviour Trabant.B
@@ -41,12 +41,16 @@ defmodule Ddb do
     Logger.warn "deleting table #{@t_name}"
     Dynamo.delete_table(@t_name)
   end
-  def all(raw \\false) do
+  def all(graph,raw \\false) do
     case raw do
       false ->
         {:ok, stuff} = Dynamo.scan(@t_name)
+        {:unf, stuff}
         #Dynamo.Decoder.decode(stuff["Items"])
-      true -> Dynamo.stream_scan(@t_name) |> Enum.map(&Dynamo.Decoder.decode(&1))
+      true -> 
+        Dynamo.stream_scan(@t_name) 
+          |> Enum.map(&Dynamo.Decoder.decode(&1))
+        #Dynamo.Decoder.decode(stuff["Items"])
     end
   end
   def test_id(id) when is_binary(id) do
@@ -86,10 +90,14 @@ defmodule Ddb do
   def add_edge(graph,aid,bid,label, %{} = term) when is_atom(label) do
     #TODO: perfect case for using Tasks and concurrency
     # setup out edges for a
+    ie_id = cast_id(bid,:in_edge)
+    ie_r = aid <> Atom.to_string(label)
     oe_map = %{
       id: cast_id(aid,:out_edge),
       map: term,
       label: label,
+      target_id: ie_id,
+      e_type: :out,
       r: bid <> Atom.to_string(label)
     }
     out_edge = Map.merge(%Ddb.E{},oe_map)
@@ -98,9 +106,10 @@ defmodule Ddb do
 
     # setup in_edges for b
     ie_map = %{
-      id: cast_id(bid,:in_edge),
-      r: aid <> Atom.to_string(label),
+      id: ie_id,
+      r: ie_r,
       label: label,
+      e_type: :in,
       map: term
     }
     in_edge = Map.merge(%Ddb.E{},ie_map)
@@ -108,19 +117,24 @@ defmodule Ddb do
     {:ok,%{}} = Dynamo.put_item(@t_name,in_edge)
 
     # setup neightbors
-    map = %{
+
+    #out
+    out_map = %{
       id: cast_id(aid,:out_neighbor),
       label: label,
+      nbr_type: :out,
       r: bid}
-    a_nbr = struct(Ddb.N,map)
-    {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
+    out_nbr = struct(Ddb.N,out_map)
+    {:ok,%{}} = Dynamo.put_item(@t_name,out_nbr)
 
-    map = %{
+    #in
+    in_map = %{
       id: cast_id(bid,:in_neighbor),
       label: label,
+      nbr_type: :in,
       r: aid}
-    a_nbr = struct(Ddb.N,map)
-    {:ok,%{}} = Dynamo.put_item(@t_name,a_nbr)
+    in_nbr = struct(Ddb.N,in_map)
+    {:ok,%{}} = Dynamo.put_item(@t_name,in_nbr)
     out_edge
   end
   def add_edge(graph,a,b,label,term) do
@@ -214,9 +228,44 @@ defmodule Ddb do
     Map.put(graph,:stream,[])
   end
   @doc "deletes a vertex"
-  def del_v(graph,%Ddb.V{id: id,r: r}) do
+  def del_v(graph,%Ddb.V{id: id,r: r} = v) do
+    epg = outE(graph, v)  
+    out = out(graph,v)
+    Enum.each(out.stream,fn(vertex) ->
+
+    end)
+    #TODO: worth parallelizing?
+    #TODO: deleting labeld in_edges seems expensive, can we omit labels for edges if neede?
+    Enum.each(epg.stream,  fn(edge_pointer) ->
+      Logger.debug "del_v: ep: #{inspect edge_pointer}"
+      edge = e(edge_pointer)
+      # delete in_edge from target vertex
+      ie_id = cast_id(edge.target_id,:in_edge)
+      ie_r = cast_id(edge.id,:node) <> Atom.to_string(edge.label)
+      # WTF, why is this list reversed?
+      ie_ptr = {ie_id,ie_r}
+      Logger.debug "ie_ptr: #{inspect ie_ptr}"
+      del_e(graph,ie_ptr)
+      out_n_id = cast_id(edge.id,:out_neighbor)
+      out_n_r = cast_id(edge.target_id,:node)
+      del_e(graph,{out_n_id,out_n_r})
+      in_n_id = cast_id(edge.target_id,:in_neighbor)
+      in_n_r = cast_id(edge.id,:node)
+      Logger.debug "deleting in_nbr\n\tid: #{in_n_id}\n\t#{in_n_r}"
+      del_e(graph,{in_n_id,in_n_r})
+      Logger.debug "del_v: e: #{inspect edge}"
+      # delete out_edge fro source vertex
+      del_e(graph,edge_pointer)
+    end)
     Dynamo.delete_item(@t_name,[id: id,r: r])
-    raise "need to delete edges and neighbors"
+  end
+  @doc "delete labels" 
+  def del_l(graph,%Ddb.V{id: id, r: r} = v) do
+    raise "TODO: figure out if we need this"
+    label_id = cast_id(id,:edge_label)
+    #Enum.each(stream,fn(raw) ->
+      #Dynamo.delete_item(@t_name,[id: item.id, r: item.r])
+    #end)
   end
   def v(graph,map) when is_map(map) do
     case Map.has_key?(map,:r) do
@@ -398,14 +447,11 @@ defmodule Ddb do
     r = Dynamo.Decoder.decode(raw)
     s = Dynamo.Decoder.decode(raw,as: Ddb.E)
     map = Map.merge(s,r["map"])
+    #<< target_id :: binary-size(33), label :: binary >> = map.r
+    #target = cast_id(target_id,:)
+    #map = Map.put(map,:target, target)
     Logger.debug "e() raw: #{inspect map}"
     map
-    
-    #TODO need a regex here
-    #[_,a_id] = String.split(id,"-")
-    #[b_id|t] = String.split(r,"_")
-
-    #%Trabant.E{pointer: pointer, a: a, b: b, label: label}
   end
   def q(graph,map) do
     eav = Map.to_list(map)
@@ -427,6 +473,24 @@ defmodule Ddb do
     end)
     Map.put(graph,:stream,stream)
   end
+  def del_e(graph) do
+    stream = Stream.flat_map(graph.stream,fn(edge_pointer) ->
+      e = e(edge_pointer)
+      #Dynamo.delete_item!(@t_name,%{id: e.id,r: e.r})
+      Logger.info "del_e: e:\n\t#{inspect e}"
+      del_e(graph,e)
+    end)
+    Map.put(graph,:stream,stream)
+  end
+  def del_e(graph,%Ddb.E{} = e) do
+    Dynamo.delete_item(@t_name,%{id: e.id,r: e.r})
+  end
+  def del_e(graph,{id,r}) do
+    Dynamo.delete_item(@t_name,%{id: id, r: r})
+  end
+  #def all(graph) do
+  #  Dynamo.steam_scan(@t_name) |> Enum.map( &(Dynamo.Decoder.decode(&1)))
+  #end
   #  Example of stream_query
   #
   # iex(23)> t |> Dynamo.stream_query(limit: 1, expression_attribute_values: [id: "1"],key_condition_expression: "id = :id")

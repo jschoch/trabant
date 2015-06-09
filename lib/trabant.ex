@@ -73,6 +73,9 @@ defmodule Trabant do
   def all_v(graph) do
     Trabant.backend.all_v(graph)
   end
+  def all(graph,raw \\false) do
+    Trabant.backend.all(graph,raw)
+  end
   def e(graph,pointer) do
     Trabant.backend.e(graph,pointer)
   end

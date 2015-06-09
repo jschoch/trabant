@@ -168,18 +168,38 @@ defmodule OuteTest do
   end
   test "delete edge works" do
     graph = graph
-    v = %{id: "1",type: :human}
-    child = %{id: "2", type: :monster}
+    id = create_string_id
+    v = %{id: id,type: :human}
+    id2 = create_string_id
+    child = %{id: id2, type: :monster}
     create_v(graph,v)
     create_child(graph,%{id: v.id,child: child,label: :relation})
-    [edge] = v(graph,v) |> outE |> data
+    [edge_pointer] = v(graph,v) |> outE |> data
+    edge = e(graph,edge_pointer)
     del_e(graph,edge)
     got = v(graph,v) |> outE |> data
     assert got == []
     #TODO: consider adding tests to make sure we don't delete :index edge, or the edge to the terminal node
   end
+
   test "ensure delete cleans out neighbors" do
-    assert false, "TODO ensure no latent neighbors"
+    graph = graph
+    id = create_string_id
+    v = %{id: id,type: :human,txt: "this is v node"}
+    id2 = create_string_id
+    child = %{id: id2, type: :monster,txt: "this is child node"}
+    v = create_v(graph,v)
+    create_child(graph,%{id: v.id,child: child,label: :relation,map: %{txt: "this is v to child"}})
+    v_graph = v(graph,v)
+    [edge_pointer] = v_graph |> outE |> data
+    neighbors = v_graph |> out |> data
+    assert Enum.count(neighbors) > 0
+    del_v(graph,v)
+    IO.puts "\n\n" <> inspect all(graph,true), pretty: true
+    neighbors = v_graph |> out |> data
+    assert Enum.count(neighbors) == 0
+    out_edges = v_graph |> outE |> data
+    assert Enum.count(out_edges) == 0
   end
   test "where works" do
     # graph |> v(where: {:age,:gt,10})
@@ -188,6 +208,10 @@ defmodule OuteTest do
   test "limit works" do
     # graph |> v(:foo) |> outE(limit: 2)
     assert false, "TODO: get limit working"
+  end
+
+  test "add a test for e() somewhere" do
+    assert false, "TODO: test e()" 
   end
   test "don't delete schema" do
     assert false, "TODO: finish checking for schema and test init cases"

@@ -12,15 +12,10 @@ defmodule TrabantTest do
   use ExUnit.Case
   
   setup do
-    #if (Mix.env != :prod) do
-      #Zdb.delete_table("graph",:no_raise)
-      #Zdb.create("graph")
-    #end
     :ok
   end
  
   test "can use behav" do
-    #Trabant.create_v(%{foo})
     g_name = "some graph"
     g = Foo.new(g_name)
     assert g != nil
@@ -36,16 +31,8 @@ defmodule TrabantTest do
   end
   test "ideas" do
     assert false, """
-    using %Resource{..}, consider to defprotocol for %E{..} or %V{..}
-    where we can get the correct representation for a traversal depending on
-    the type of the items the stream emits
+    ensure we don't try to pass the wrong types like outE |> outE
     """
-  end
-  test "regex on key or value" do
-    assert false, "can we create a protocol to match a regex on a key or value?"
-  end
-  test "can use digraph, or mdigraph via composition" do
-    assert false, "adapter for different backends would be nice"
   end
   test "mnesia uses disk_copies to replicatate" do
     assert false, "need to setup replication param"

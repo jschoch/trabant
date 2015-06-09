@@ -1,7 +1,9 @@
-since there is no :digraph.update we need to connect the edges to the special "id" node.
+rip out digraph and mdgraph, to much hacking needed to get working with updates and vertex ids
 
+should be able to have a default graph everywhere
 
 outE(g,atom_label) is driving me nutz, do I really need this?  There seems no way to query for item metadata like has_attribute_key?
+
 
 lots of hack accumulating, look at TODOs
 

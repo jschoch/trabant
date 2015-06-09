@@ -9,3 +9,8 @@ config :zdb,
 
 config :logger,
   level: :info
+
+config :ex_aws,
+  access_key_id: 123,
+  secret_access_key: 123
+
