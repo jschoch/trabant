@@ -5,7 +5,7 @@ defmodule Trabant.Mixfile do
     [app: :trabant,
      version: "0.0.1",
      elixir: "~> 1.0",
-     build_embedded: Mix.env == :prod,
+     build_embedded: Mix.env == :prod || Mix.env == :gamma,
      start_permanent: Mix.env == :prod,
      deps: deps]
   end

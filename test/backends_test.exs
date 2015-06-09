@@ -103,12 +103,18 @@ defmodule OuteTest do
     graph = graph
     lst = Hel.createN(graph,5)
     [a,b,c|d] = lst
-    create_child(graph,%{id: a,child: b,label: :pal})
-    create_child(graph,%{id: a,child: c,label: :pal})
-    r = graph |> v_id(a.id) |> out |> first |> data
-    assert r != [], "empty result! got []"
-    [first_v] = r
-    assert first_v.id == a.id, "wrong result #{inspect first_v}\n\texpected: #{a.id}\n\tgot: #{first_v.id}"
+    create_child(graph,%{id: a.id,child: b,label: :pal})
+    create_child(graph,%{id: a.id,child: c,label: :pal})
+    r = graph |> v_id(a.id) |> out 
+    f = r |> first |> data
+    d = r |> data
+    assert f != [], "empty result! got []"
+    [first_v] = f
+    assert Enum.count(d) == 2
+    assert Enum.count(f) == 1
+      
+    # TODO: dont' think i can make assumptions about ordering
+    #assert first_v.id == a.id, "wrong result #{inspect first_v}\n\texpected: #{a.id}\n\tgot: #{first_v.id}\nlst: #{inspect lst}\n\nd: #{inspect d}"
   end
   test "limit works" do
     graph = graph
@@ -195,7 +201,9 @@ defmodule OuteTest do
     neighbors = v_graph |> out |> data
     assert Enum.count(neighbors) > 0
     del_v(graph,v)
-    IO.puts "\n\n" <> inspect all(graph,true), pretty: true
+    all = all(graph,true)
+    assert Enum.count(all) == 1
+    IO.puts "\n\nshould be one result: " <> inspect all, pretty: true
     neighbors = v_graph |> out |> data
     assert Enum.count(neighbors) == 0
     out_edges = v_graph |> outE |> data

@@ -70,6 +70,7 @@ defmodule Ddb do
   def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do
     test_id(id)
     vertex = %Ddb.V{} |> Map.merge(term)
+    vertex = Map.put(vertex,:v_type,:node)
     res = Dynamo.put_item(@t_name,vertex)
     vertex
   end
@@ -81,15 +82,7 @@ defmodule Ddb do
     create_v(graph,vertex)
   end
 
-  # uses defaults from Trabant.add_edge
-  #def add_edge(graph,a,b,label,term \\%{})
-
-  def add_edge(graph,%{} = a, %{} = b,label, %{} = term) when is_atom(label)  do
-    add_edge(graph,a.id,b.id,label,term)
-  end
-  def add_edge(graph,aid,bid,label, %{} = term) when is_atom(label) do
-    #TODO: perfect case for using Tasks and concurrency
-    # setup out edges for a
+  def add_out_edge(graph,aid,bid,label,term) when is_binary(aid) and is_binary(bid) do
     ie_id = cast_id(bid,:in_edge)
     ie_r = aid <> Atom.to_string(label)
     oe_map = %{
@@ -101,24 +94,27 @@ defmodule Ddb do
       r: bid <> Atom.to_string(label)
     }
     out_edge = Map.merge(%Ddb.E{},oe_map)
-    Logger.debug inspect out_edge
     {:ok,%{}} = Dynamo.put_item(@t_name,out_edge)
-
-    # setup in_edges for b
+    out_edge
+  end
+  def add_in_edge(graph,aid,bid,label) when is_binary(aid) and is_binary(bid) do
+    ie_id = cast_id(bid,:in_edge)
+    ie_r = aid <> Atom.to_string(label)
     ie_map = %{
       id: ie_id,
       r: ie_r,
       label: label,
-      e_type: :in,
-      map: term
+      e_type: :in
+      # TODO: ensure we don't want the term in both edges, only :out_edge
+      #map: term
     }
     in_edge = Map.merge(%Ddb.E{},ie_map)
     Logger.debug inspect in_edge
     {:ok,%{}} = Dynamo.put_item(@t_name,in_edge)
-
-    # setup neightbors
-
-    #out
+    in_edge
+  end
+  def add_out_nbr(aid,bid,label)  when is_binary(aid) and is_binary(bid) do
+    #Logger.error inspect [aid,bid,label]
     out_map = %{
       id: cast_id(aid,:out_neighbor),
       label: label,
@@ -126,8 +122,8 @@ defmodule Ddb do
       r: bid}
     out_nbr = struct(Ddb.N,out_map)
     {:ok,%{}} = Dynamo.put_item(@t_name,out_nbr)
-
-    #in
+  end
+  def add_in_nbr(aid,bid,label) when (is_binary(aid) and is_binary(bid)) do
     in_map = %{
       id: cast_id(bid,:in_neighbor),
       label: label,
@@ -135,7 +131,28 @@ defmodule Ddb do
       r: aid}
     in_nbr = struct(Ddb.N,in_map)
     {:ok,%{}} = Dynamo.put_item(@t_name,in_nbr)
-    out_edge
+  end
+  def add_edge(graph,%{} = a, %{} = b,label, %{} = term) when is_atom(label)  do
+    add_edge(graph,a.id,b.id,label,term)
+  end
+  def add_edge(graph,aid,bid,label, %{} = term) when is_atom(label) do
+    #TODO: perfect case for using Tasks and concurrency
+    children = []
+    pid = self()
+    
+    #setup out_edge
+    children = [spawn(fn-> add_out_edge(graph,aid,bid,label,term);send(pid,self); end) | children]
+
+    # setup in_edge for b
+    children = [spawn(fn-> add_in_edge(graph,aid,bid,label);send(pid,self); end) | children]
+    # setup neightbors
+
+    #out
+    children = [spawn(fn-> add_out_nbr(aid,bid,label);send(pid,self); end) | children]
+        #in
+    children = [spawn(fn-> add_in_nbr(aid,bid,label);send(pid,self); end) |children]
+    wait_on(children)
+    #out_edge
   end
   def add_edge(graph,a,b,label,term) do
     raise "add_edge/5 must use a atom as a label, and map as a term #{inspect [a,b,label,term]}"
@@ -230,36 +247,60 @@ defmodule Ddb do
   @doc "deletes a vertex"
   def del_v(graph,%Ddb.V{id: id,r: r} = v) do
     epg = outE(graph, v)  
-    out = out(graph,v)
-    Enum.each(out.stream,fn(vertex) ->
-
-    end)
     #TODO: worth parallelizing?
     #TODO: deleting labeld in_edges seems expensive, can we omit labels for edges if neede?
     Enum.each(epg.stream,  fn(edge_pointer) ->
       Logger.debug "del_v: ep: #{inspect edge_pointer}"
       edge = e(edge_pointer)
-      # delete in_edge from target vertex
-      ie_id = cast_id(edge.target_id,:in_edge)
-      ie_r = cast_id(edge.id,:node) <> Atom.to_string(edge.label)
-      # WTF, why is this list reversed?
-      ie_ptr = {ie_id,ie_r}
-      Logger.debug "ie_ptr: #{inspect ie_ptr}"
-      del_e(graph,ie_ptr)
-      out_n_id = cast_id(edge.id,:out_neighbor)
-      out_n_r = cast_id(edge.target_id,:node)
-      del_e(graph,{out_n_id,out_n_r})
-      in_n_id = cast_id(edge.target_id,:in_neighbor)
-      in_n_r = cast_id(edge.id,:node)
-      Logger.debug "deleting in_nbr\n\tid: #{in_n_id}\n\t#{in_n_r}"
-      del_e(graph,{in_n_id,in_n_r})
-      Logger.debug "del_v: e: #{inspect edge}"
+      Logger.debug "del_v: starting children"
+      # remove :in_edge
+      children = []
+      pid = self()
+      children = [spawn( fn-> del_ie(edge);send(pid,self); end) | children]
+
+      #remove :out_neighbor
+      children = [spawn( fn-> del_on(edge);send(pid,self) end) | children]
+
+      #remove :in_neighbor
+      children = [spawn( fn-> del_in(edge);send(pid,self) end) | children]
+
       # delete out_edge fro source vertex
-      del_e(graph,edge_pointer)
+      children = [spawn( fn->  del_e(graph,edge_pointer);send(pid,self) end) | children]
+      wait_on(children)
     end)
+    # delete vertex
     Dynamo.delete_item(@t_name,[id: id,r: r])
   end
-  @doc "delete labels" 
+  @doc "wait for a message from children pids from spawn"
+  def wait_on([]) do
+    Logger.debug "children are done, nice!"
+    nil
+  end
+  def wait_on(children) do
+    receive do
+      pid when is_pid(pid) -> 
+        Logger.debug "child: #{inspect pid} done!"
+        wait_on(List.delete(children,pid))
+    end
+  end
+  @doc "delete in edge"
+  def del_ie(edge) do
+    ie_id = cast_id(edge.target_id,:in_edge)
+    ie_r = cast_id(edge.id,:node) <> Atom.to_string(edge.label)
+    ie_ptr = {ie_id,ie_r} 
+    del_e(graph,ie_ptr)
+  end
+  def del_on(edge) do
+    out_n_id = cast_id(edge.id,:out_neighbor)
+    out_n_r = cast_id(edge.target_id,:node)
+    del_e(graph,{out_n_id,out_n_r})
+  end
+  def del_in(edge) do
+    in_n_id = cast_id(edge.target_id,:in_neighbor)
+    in_n_r = cast_id(edge.id,:node)
+    del_e(graph,{in_n_id,in_n_r})
+  end
+  @doc "delete labels maybe not needed" 
   def del_l(graph,%Ddb.V{id: id, r: r} = v) do
     raise "TODO: figure out if we need this"
     label_id = cast_id(id,:edge_label)
