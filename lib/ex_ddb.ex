@@ -66,6 +66,17 @@ defmodule Ddb do
   def test_id(id) do
     raise "can't create id, only supporting 33 byte strings right now" 
   end
+  @doc "creates a vertex, id is optional, graph is derived from graph()"
+  def create_v(map,label) when is_map(map) and is_atom(label) do
+    graph = graph
+    case Map.has_key?(map,:id) do
+      true -> nil
+      false -> 
+        id = create_string_id(:node)
+        map = Map.put(map,:id,id)
+    end
+    create_v(graph,map,label)
+  end
   def create_v(graph,term,label \\[])
   def create_v(graph,%{id: id}, label) when is_number(id) do
     raise "can't use integer id's until we workout how to get the table creation types aligned and correct"
@@ -322,6 +333,9 @@ defmodule Ddb do
     Enum.reduce(Map.keys(map),%{}, fn(key,acc) ->
       Map.put(acc,String.to_existing_atom(key),map[key])
     end)
+  end
+  def v_id(key) do
+    v_id(graph(),key)
   end
   def v_id(graph,{nil,_}) do
     raise "v_id/2 can't go fetch a vertex with nil as the id!"
