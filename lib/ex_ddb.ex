@@ -77,7 +77,7 @@ defmodule Ddb do
     end
     create_v(graph,map,label)
   end
-  def create_v(graph,term,label \\[])
+  def create_v(graph,term,label \\:default_label)
   def create_v(graph,%{id: id}, label) when is_number(id) do
     raise "can't use integer id's until we workout how to get the table creation types aligned and correct"
   end
@@ -150,6 +150,7 @@ defmodule Ddb do
     add_edge(graph,a.id,b.id,label,term)
   end
   def add_edge(graph,aid,bid,label, %{} = term) when is_atom(label) do
+    Logger.debug("add_edge aid: #{aid} bid: #{bid} label: #{label} term: #{inspect term}")
     #TODO: perfect case for using Tasks and concurrency
     children = []
     pid = self()
@@ -188,8 +189,9 @@ defmodule Ddb do
   end
   def out(graph) do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
+      Logger.debug "getting out neighbors for vertex id: #{vertex.id}"
       graph = out(graph,vertex) 
-      Logger.debug "out(graph): \n\n\t#{inspect Enum.to_list(graph.stream)}"
+      #Logger.debug "out(graph): \n\n\t#{inspect Enum.to_list(graph.stream)}"
       graph.stream
     end)
     Map.put(graph,:stream,stream)
@@ -203,6 +205,7 @@ defmodule Ddb do
     stream = Stream.flat_map(r,fn(raw) -> 
       item = Dynamo.Decoder.decode(raw,as: Ddb.N)
       r = id_from_neighbor(item.r)
+      Logger.debug "found neighbor #{r}"
       g = v_id(graph,r)
       g.stream
     end)
@@ -399,7 +402,7 @@ defmodule Ddb do
       s = Dynamo.Decoder.decode(raw,as: Ddb.E)
       Map.merge(s,r["map"])
     end)
-    Logger.debug "as Ddb.E stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
+    #Logger.debug "as Ddb.E stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
     stream = Stream.map(stream, &({&1.id,&1.r}))
     #Logger.debug "to go into graph stream\n\n\n" <> inspect Enum.to_list(stream), pretty: true
 

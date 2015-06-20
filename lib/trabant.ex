@@ -199,12 +199,12 @@ defmodule Trabant do
     stream = Stream.take(graph.stream,limit)
     Map.put(graph,:stream,stream)
   end
-  def create_child(id,map,edge_label) when is_binary(id) do
+  def create_child(source_id,map,edge_label) when is_binary(source_id) do
     graph = graph
-    id = create_string_id
-    target = Map.put(map,:id,id)
+    target_id = create_string_id
+    target = Map.put(map,:id,target_id)
     target = create_v(graph,target)
-    create_child(graph,id,target.id,edge_label)
+    create_child(graph,source_id,target.id,edge_label)
     target
   end
   @doc "creates a vertex and links via edges %{id: <parent id>,child: <map should be enforced>,label: <edge label>"

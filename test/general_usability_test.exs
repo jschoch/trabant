@@ -26,5 +26,7 @@ defmodule VTest do
     v = create_v(%{foo: :bar},:i_am_label)
     child = create_child(v.id,%{baz: :biz},:also_label)
     assert Map.has_key?(child,:id), "no key for child #{inspect child}"
+    children = v_id(v.id) |> out |> data
+    assert children != [] ,"fuck\nall: #{inspect(all(graph(),true),pretty: true)}"
   end
 end
