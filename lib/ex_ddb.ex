@@ -84,7 +84,7 @@ defmodule Ddb do
   def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do
     test_id(id)
     vertex = %Ddb.V{} |> Map.merge(term)
-    vertex = Map.put(vertex,:v_type,:node)
+    vertex = Map.put(vertex,:v_type,"node")
     res = Dynamo.put_item(t_name(),vertex)
     vertex
   end
