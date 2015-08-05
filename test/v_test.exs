@@ -62,6 +62,6 @@ defmodule VTest do
     assert got.id == alcmene_id, "wrong result #{inspect got, pretty: true}"
   end
   test "infer range key" do
-    assert false, " v_id(id) should infer a type from the parse_id(id) output, we may be able to have different default range keys for example a :label_node type"
+    assert false, "TODO: v_id(id) should infer a type from the parse_id(id) output, we may be able to have different default range keys for example a :label_node type"
   end
 end
