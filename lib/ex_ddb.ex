@@ -4,13 +4,15 @@ defmodule Ddb.V do
   defstruct id: nil, r: "0", created_at: Timex.Time.now(:secs),v_type: nil,t: nil
 end
 defmodule Ddb.E do
+  require Logger
   @derive [ExAws.Dynamo.Encodable]
   defstruct id: nil, r: nil, label: nil,created_at: Timex.Time.now(:secs),target_id: nil,e_type: nil,t: nil
 
   # convert label values to existing atoms
   defimpl ExAws.Dynamo.Decodable do
     def decode(%{label: label} = map) do
-      %{map | label: String.to_existing_atom(label)}
+      Logger.error("importing edge: abandon labels as atoms please, use strings")
+      %{map | label: String.to_atom(label)}
     end
   end
 end
