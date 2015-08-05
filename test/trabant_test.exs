@@ -24,26 +24,26 @@ defmodule TrabantTest do
     fail = Foo.new(:foo)
   end
   test "can filter by time" do
-    assert false, "can we filter nodes and edges by %ModTime{} via timex and exquisite"
+    assert false, "TODO: can we filter nodes and edges by %ModTime{} via timex and exquisite"
   end 
   test "can use ecto as backend" do
-    assert false, "mockup ecto as backend"
+    assert false, "TODO: mockup ecto as backend"
   end
   test "ideas" do
     assert false, """
-    ensure we don't try to pass the wrong types like outE |> outE
+    TODO: ensure we don't try to pass the wrong types like outE |> outE
     """
   end
   test "mnesia uses disk_copies to replicatate" do
-    assert false, "need to setup replication param"
+    assert false, "TODO: need to setup replication param"
   end
   test "mnesia backup restore" do
-    assert false, "backup restore from disk would be nice"
+    assert false, "TODO: backup restore from disk would be nice"
   end
   test "mnesia fails correctly" do
-    assert false, "test failure modes and things like {:majority,true}"
+    assert false, "TODO: test failure modes and things like {:majority,true}"
   end
   test "can we use Tasks to work in parallel?" do
-    assert false, "test using Tasks to do some work mid stream"
+    assert false, "TODO: test using Tasks to do some work mid stream"
   end
 end

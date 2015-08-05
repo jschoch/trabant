@@ -28,7 +28,7 @@ defmodule VTest do
       |> inV
     result = data(g)
     assert result != nil
-    IO.puts inspect result, pretty: true
+    #IO.puts inspect result, pretty: true
   end
   test "inv(:label) works" do
     graph = Hel.create_data

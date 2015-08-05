@@ -23,7 +23,7 @@ defmodule VTest do
 
     result = graph |> v(maps.m) |> res
     assert result != nil
-    IO.puts inspect result, pretty: true
+    #IO.puts inspect result, pretty: true
     [vertex] = result.data
     assert vertex != nil
     assert vertex.id == maps.m.id, "wrong result #{inspect vertex}"
@@ -32,7 +32,7 @@ defmodule VTest do
 
     [vertex] = graph |> v(maps.m) |> data
     assert vertex.id == maps.m.id
-    IO.puts "raw vertex result: \n\n#{inspect result, pretty: true}"
+    #IO.puts "raw vertex result: \n\n#{inspect result, pretty: true}"
   end
   test "vertex lookups" do
     graph = Hel.createG

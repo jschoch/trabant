@@ -188,7 +188,7 @@ defmodule Ddb do
     Map.merge(%Ddb.V{},map)
   end
   def id_from_neighbor(s) do
-    Logger.info inspect s
+    Logger.debug inspect s
     cast_id(s,:node)
   end
   def out(graph) do
@@ -209,7 +209,7 @@ defmodule Ddb do
     stream = Stream.flat_map(r,fn(raw) -> 
       item = Dynamo.Decoder.decode(raw,as: Ddb.N)
       r = id_from_neighbor(item.r)
-      Logger.info"found neighbor #{r}"
+      Logger.debug "found neighbor #{r}"
       g = v_id(graph,r)
       g.stream
     end)
@@ -265,7 +265,12 @@ defmodule Ddb do
     #TODO: do we need to put in some metadata here?
     Map.put(graph,:stream,[])
   end
-  @doc "deletes a vertex"
+  @doc """
+    deletes a vertex
+
+
+    this has to delete all in and out edges, as well as all in and out neighbors.  
+    """
   def del_v(graph,%Ddb.V{id: id,r: r} = v) do
     Logger.debug "del_v called on id: " <> id
     out_edges = outE(graph, v)  
@@ -294,13 +299,26 @@ defmodule Ddb do
     Logger.debug "del_v processing in_edges for id: "<>id 
     in_edges = inE(graph,v)
     Enum.each(in_edges.stream,fn(edge_pointer) ->
+      #
+      # in edges require that we delete additional nbrs and edges on the source vertes
+      #
       edge = parse_pointer(edge_pointer)
-      Logger.debug "del_v in_edges: " <> inspect edge
+      Logger.debug( "del_v in_edges: #{inspect edge}\n pointer: #{inspect edge_pointer}" )
       del_e(graph,edge_pointer)
+      out_nbr_id = cast_id edge.bid, :out_neighbor
+      out_nbr_r = cast_id edge.aid,:node
+      ptr = {out_nbr_id,out_nbr_r}
+      Logger.debug "del_v deleting nbr: "<> inspect ptr
+      del_e(graph,ptr)
+      target_out_e_id = cast_id edge.bid, :out_edge
+      target_out_e_r = edge.aid <> Atom.to_string(edge.label)
+      ptr = {target_out_e_id,target_out_e_r}
+      Logger.debug "del_v deleting source out_edge: "<> inspect ptr
+      del_e(graph,ptr)
+      
     end )
     nbrs = nbrE(graph,v)
     Enum.each(nbrs.stream,fn(edge_pointer) -> 
-
       edge = parse_pointer(edge_pointer) 
       del_e(graph,edge_pointer)
       Logger.debug "nbr edges: #{inspect edge}"
@@ -412,16 +430,15 @@ defmodule Ddb do
     Map.put(graph,:stream,stream)
   end
   def inE(graph,vertex) when is_map(vertex) do
-    eav = [id: "in_edge",r: "#{vertex.id}_"]
-    kce = "id = :id AND begins_with (r,:r)"
+    eav = [id: cast_id(vertex.id,:in_edge)]
+    kce = "id = :id "
     stream = Dynamo.stream_query(t_name(),
       expression_attribute_values: eav,
       key_condition_expression: kce)
 
     stream = Stream.map(stream,fn(raw) ->
-      r = Dynamo.Decoder.decode(raw)
+      # no maps in in_edges to reduce duplication
       s = Dynamo.Decoder.decode(raw,as: Ddb.E)
-      Map.merge(s,r["map"])
     end)
     stream = Stream.map(stream, &({&1.id,&1.r}))
     Map.put(graph,:stream,stream)
@@ -436,7 +453,7 @@ defmodule Ddb do
       expression_attribute_values: eav,
       key_condition_expression: kce)
     in_stream = Stream.map(stream,fn(raw) ->
-      Logger.info "in: "<> inspect raw
+      Logger.debug "in: "<> inspect raw
       s = Dynamo.Decoder.decode(raw,as: Ddb.N)
     end)
     in_stream = Stream.map(in_stream, &({&1.id,&1.r}))
@@ -447,7 +464,7 @@ defmodule Ddb do
       expression_attribute_values: eav,
       key_condition_expression: kce)
     out_stream = Stream.map(stream,fn(raw) ->
-      Logger.info "out: "<> inspect raw
+      Logger.debug "out: "<> inspect raw
       s = Dynamo.Decoder.decode(raw,as: Ddb.N)
     end)
     out_stream = Stream.map(out_stream, &({&1.id,&1.r}))
@@ -623,7 +640,7 @@ defmodule Ddb do
   def del_e(graph) do
     stream = Stream.flat_map(graph.stream,fn(edge_pointer) ->
       e = e(edge_pointer)
-      Logger.info "del_e: e:\n\t#{inspect e}"
+      Logger.debug "del_e: e:\n\t#{inspect e}"
       del_e(graph,e)
     end)
     Map.put(graph,:stream,stream)
@@ -634,7 +651,9 @@ defmodule Ddb do
   end
   def del_e(graph,{id,r}) do
     Logger.debug "del_e: deleting tpl: "<> inspect {id,r}
-    Dynamo.delete_item(t_name(),%{id: id, r: r})
+    {:ok,m} = Dynamo.delete_item(t_name(),%{id: id, r: r})
+    #Logger.error "del_e" <> inspect r
+    :ok
   end
   #def all(graph) do
   #  Dynamo.steam_scan(t_name()) |> Enum.map( &(Dynamo.Decoder.decode(&1)))

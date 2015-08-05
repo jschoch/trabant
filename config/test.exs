@@ -11,3 +11,6 @@ config :ex_aws,
   access_key_id: 12345,
   secret_access_key: 12345
 
+config :logger,
+  level: :info
+  #level: debug

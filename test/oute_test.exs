@@ -91,12 +91,12 @@ defmodule BackendsTest do
     result = graph
       |> v(vertex)
       |> outE(:unf)
-    IO.puts inspect "Result " <> inspect result
-    IO.puts inspect "stream" <> inspect Enum.to_list(result.stream)
+    #IO.puts inspect "Result " <> inspect result
+    #IO.puts inspect "stream" <> inspect Enum.to_list(result.stream)
     chain_result = res(result)
     assert chain_result.count == 2, "wrong result #{inspect chain_result}"
 
-    IO.puts "outE result #{inspect chain_result.data}"
+    #IO.puts "outE result #{inspect chain_result.data}"
   end
   
 end

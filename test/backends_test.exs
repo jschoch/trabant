@@ -157,7 +157,7 @@ defmodule OuteTest do
     assert r != [], "crap []"
     [got_alcmene] = r
     assert alcmene != got_alcmene
-    assert got_alcmene == updated_alcmene
+    assert got_alcmene.foo == updated_alcmene.foo
   end
   test "delete vertex works" do
     graph = graph
@@ -203,7 +203,7 @@ defmodule OuteTest do
     del_v(graph,v)
     all = all(graph,true)
     assert Enum.count(all) == 1
-    IO.puts "\n\nshould be one result: " <> inspect all, pretty: true
+    #IO.puts "\n\nshould be one result: " <> inspect all, pretty: true
     neighbors = v_graph |> out |> data
     assert Enum.count(neighbors) == 0
     out_edges = v_graph |> outE |> data

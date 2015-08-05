@@ -28,7 +28,7 @@ defmodule IdTest do
     assert byte_size(s.sid) == 32
     id_type = id_type?(id)
     assert id_type == :node
-    IO.puts inspect parsed,pretty: true
+    #IO.puts inspect parsed,pretty: true
   end
   test "create edge id works correctly" do
     id = create_string_id(:out_edge)
