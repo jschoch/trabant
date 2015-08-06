@@ -48,6 +48,18 @@ defmodule Trabant do
   def new(name) do
     Trabant.backend.new(name)
   end
+  def dump do
+    Trabant.backend.dump
+  end
+  def dump(name) do
+    Trabant.backend.dump(name) 
+  end
+  def restore do
+    Trabant.backend.restore
+  end
+  def restore(name) do
+    Trabant.backend.restore(name)
+  end
   def get_graph() do
     Trabant.backend.get_graph()
   end

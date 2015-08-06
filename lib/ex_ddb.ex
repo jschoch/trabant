@@ -72,6 +72,55 @@ defmodule Ddb do
   def test_id(id) do
     raise "can't create id, only supporting 33 byte strings right now" 
   end
+  def dump do
+    f = "backup-full-#{:os.system_time}"
+    dump(f)
+  end
+  def dump(name) do
+    full = all graph, true
+    txt = "error"
+    dir = "backups/"
+    f = dir <> "backup-#{name}-#{:os.system_time}"
+    if (!File.dir?( dir)), do: File.mkdir_p! dir
+    case Poison.encode(full) do
+      {:ok,s} -> txt = s
+      doh -> raise "encoding error: "<> inspect doh
+    end
+    File.write(f,txt)
+    {:ok, f}
+  end
+  def restore do
+    raise "TODO: how do we do this ?"
+  end
+  def restore(name) do
+    Logger.info "restoring #{name}"
+    {:ok, str} = File.read(name)
+    IO.puts inspect str
+    case Poison.decode(str) do
+      {:ok,map} -> 
+        Logger.info "size: " <>inspect Enum.count map
+        "map: " <> inspect( Enum.take(map,5), pretty: true)
+        Enum.each(map,fn(i) ->
+          IO.puts inspect i
+          restore_item(i)
+        end)
+      {err,reason} -> raise "error: #{err} \n\n#{inspect reason}"
+    end
+  end
+  def restore_item(item) do
+    case item do
+      %{"t" =>  t} when t in ~w(in_edge out_edge) ->
+        item = Map.merge(%Ddb.E{},item)
+        {:ok, res} = ExAws.Dynamo.put_item(Ddb.t_name(),item)
+      %{"t" => "node"} ->
+        item = Map.merge(%Ddb.V{},item)
+        {:ok, res} = ExAws.Dynamo.put_item(Ddb.t_name(),item)
+      %{"t" =>  t} when t in ~w(in_nbr out_nbr) ->
+        item = Map.merge(%Ddb.N{},item)
+        {:ok, res} = ExAws.Dynamo.put_item(Ddb.t_name(),item)
+      doh -> raise "unknown type error #{inspect item}"
+    end
+  end
   @doc "creates a vertex, id is optional, graph is derived from graph()"
   def create_v(map,label) when is_map(map) and is_atom(label) do
     graph = graph
