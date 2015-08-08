@@ -137,8 +137,10 @@ defmodule OuteTest do
 
     ins = graph |> v_id(@gods.alcmene) |> inn |> data
     assert ins != [],"crap []"
-    ids = Enum.filter_map(ins,&(&1.id in [@gods.pluto,@gods.hurcules]),&(&1.id))
-    assert ids == [@gods.hurcules,@gods.pluto], "doh! #{inspect ids}\n\t#{inspect ins,pretty: true}"
+    [got] = ins
+    assert got.id == @gods.hercules
+    #ids = Enum.filter_map(ins,&(&1.id in [@gods.pluto,@gods.hurcules]),&(&1.id))
+    #assert ids == [@gods.hurcules], "doh! ids: #{inspect ids}\n\tins: #{inspect ins,pretty: true}"
     [herc] = graph |> v_id(@gods.alcmene) |> inn(%{type: "demigod"}) |> data
     assert herc.id == @gods.hercules
   end

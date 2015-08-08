@@ -81,7 +81,7 @@ defmodule BackendsTest do
     assert result != nil
     assert match?({_,_},result)
     e = Ddb.parse_pointer(result)
-    assert e.label == :unf, "wrong result #{inspect e}"
+    assert e.label == "unf", "wrong result #{inspect e}"
     assert e.aid == @m.id
     assert e.bid == @m2.id
   end

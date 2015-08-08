@@ -9,12 +9,12 @@ defmodule Ddb.E do
   defstruct id: nil, r: nil, label: nil,created_at: Timex.Time.now(:secs),target_id: nil,e_type: nil,t: nil
 
   # convert label values to existing atoms
-  defimpl ExAws.Dynamo.Decodable do
-    def decode(%{label: label} = map) do
-      Logger.error("importing edge: abandon labels as atoms please, use strings")
-      %{map | label: String.to_atom(label)}
-    end
-  end
+  #defimpl ExAws.Dynamo.Decodable do
+    #def decode(%{label: label} = map) do
+      #Logger.error("importing edge: abandon labels as atoms please, use strings")
+      #%{map | label: String.to_atom(label)}
+    #end
+  #end
 end
 defmodule Ddb.N do
   @derive [ExAws.Dynamo.Encodable]
@@ -121,8 +121,12 @@ defmodule Ddb do
       doh -> raise "unknown type error #{inspect item}"
     end
   end
-  @doc "creates a vertex, id is optional, graph is derived from graph()"
+  @doc "creates a vertex, atom label is cast to string" 
   def create_v(map,label) when is_map(map) and is_atom(label) do
+    create_v(map,Atom.to_string(label))
+  end
+  @doc "creates a vertex, id is optional, graph is derived from graph()"
+  def create_v(map,label) when is_map(map) and is_binary(label) do
     graph = graph
     case Map.has_key?(map,:id) do
       true -> nil
@@ -153,7 +157,8 @@ defmodule Ddb do
 
   def add_out_edge(graph,aid,bid,label,term) when is_binary(aid) and is_binary(bid) do
     ie_id = cast_id(bid,:in_edge)
-    ie_r = aid <> Atom.to_string(label)
+    #ie_r = aid <> Atom.to_string(label)
+    ie_r = aid <> label
     oe_map = %{
       id: cast_id(aid,:out_edge),
       map: term,
@@ -161,7 +166,8 @@ defmodule Ddb do
       target_id: ie_id,
       e_type: :out,
       t: "out_edge",
-      r: bid <> Atom.to_string(label)
+      #r: bid <> Atom.to_string(label)
+      r: bid <> label
     }
     out_edge = Map.merge(%Ddb.E{},oe_map)
     {:ok,%{}} = Dynamo.put_item(t_name(),out_edge)
@@ -169,7 +175,8 @@ defmodule Ddb do
   end
   def add_in_edge(graph,aid,bid,label) when is_binary(aid) and is_binary(bid) do
     ie_id = cast_id(bid,:in_edge)
-    ie_r = aid <> Atom.to_string(label)
+    #ie_r = aid <> Atom.to_string(label)
+    ie_r = aid <> label
     ie_map = %{
       id: ie_id,
       r: ie_r,
@@ -209,6 +216,9 @@ defmodule Ddb do
     add_edge(graph,a.id,b.id,label,term)
   end
   def add_edge(graph,aid,bid,label, %{} = term) when is_atom(label) do
+    add_edge(graph,aid,bid,Atom.to_string(label),term) 
+  end
+  def add_edge(graph,aid,bid,label, %{} = term) when is_binary(label) do
     Logger.debug("add_edge aid: #{aid} bid: #{bid} label: #{label} term: #{inspect term}")
     children = []
     pid = self()
@@ -275,7 +285,8 @@ defmodule Ddb do
   end
   @doc "get all neighbors with in edges from a single vertex"
   def inn(graph,%Ddb.V{} = vertex) do
-    eav = [id: "#{vertex.id}_inbr"]
+    id = cast_id(vertex.id,:in_neighbor)
+    eav = [id: "#{id}"]
     kce = "id = :id "
     r = Dynamo.stream_query(t_name(),
       expression_attribute_values: eav,
@@ -362,7 +373,8 @@ defmodule Ddb do
       Logger.debug "del_v deleting nbr: "<> inspect ptr
       del_e(graph,ptr)
       target_out_e_id = cast_id edge.bid, :out_edge
-      target_out_e_r = edge.aid <> Atom.to_string(edge.label)
+      #target_out_e_r = edge.aid <> Atom.to_string(edge.label)
+      target_out_e_r = edge.aid <> edge.label
       ptr = {target_out_e_id,target_out_e_r}
       Logger.debug "del_v deleting source out_edge: "<> inspect ptr
       del_e(graph,ptr)
@@ -391,7 +403,8 @@ defmodule Ddb do
   @doc "delete in edge"
   def del_ie(edge) do
     ie_id = cast_id(edge.target_id,:in_edge)
-    ie_r = cast_id(edge.id,:node) <> Atom.to_string(edge.label)
+    #ie_r = cast_id(edge.id,:node) <> Atom.to_string(edge.label)
+    ie_r = cast_id(edge.id,:node) <> edge.label
     ie_ptr = {ie_id,ie_r} 
     del_e(graph,ie_ptr)
   end
@@ -551,8 +564,12 @@ defmodule Ddb do
     Map.put(graph,:stream,stream)
   end
 
+  def outE(graph,label) when is_atom(label) do
+    outE(graph,Atom.to_string(label))
+  end
+
   @doc "get label, labels should be used for indexing mostly"
-  def outE(graph,label_key) when is_atom(label_key)do
+  def outE(graph,label_key) when is_binary(label_key)do
     stream = Stream.flat_map(graph.stream,fn(vertex) ->
       # TODO: should consider index for this
       Stream.filter(outE(graph,vertex).stream, fn(edge_pointer) ->
@@ -607,11 +624,10 @@ defmodule Ddb do
     raise "nil no workie in parse_pointer/1"
   end
   def parse_pointer({aid,bid_and_label}) do
-    #map = Regex.named_captures(@id_reg,a) |> Map.merge(Regex.named_captures(@out_reg,b))
     Logger.debug "parse_pointer \n\t#{inspect aid} \n\t#{inspect bid_and_label}"
-    #Map.put(map,"label",Poison.decode!(map["label"],keys: :atoms))
     << bid :: binary-size(33),label :: binary >> = bid_and_label
-    %{aid: cast_id(aid,:node),bid: cast_id(bid,:node), label: String.to_existing_atom(label)}
+    #%{aid: cast_id(aid,:node),bid: cast_id(bid,:node), label: String.to_existing_atom(label)}
+    %{aid: cast_id(aid,:node),bid: cast_id(bid,:node), label: label}
   end
   def parse_pointer(foo) do
     raise "bad pointer #{inspect foo}"
@@ -628,8 +644,11 @@ defmodule Ddb do
     stream = Stream.uniq(stream)
     Map.put(graph,:stream,stream)
   end
-  @doc "get verteces with matching attribute keys"
   def inV(graph,key) when is_atom(key) do
+    inV(graph, Atom.to_string(key))
+  end
+  @doc "get verteces with matching attribute keys"
+  def inV(graph,key) when is_binary(key) do
     #TODO: should be able to optimize with label indexes
     stream = Stream.filter(inV(graph).stream,fn(vertex) ->
       Map.has_key?(vertex,key)

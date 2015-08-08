@@ -27,7 +27,7 @@ defmodule Hel do
     saturn: create_string_id,
     alcmene: create_string_id,
     jupiter: create_string_id,
-    hurcules: create_string_id,
+    hercules: create_string_id,
     pluto: create_string_id
   }
   def gods do
@@ -44,7 +44,7 @@ defmodule Hel do
     jupiter = %{id: @gods.jupiter,r: "0",name: "Jupiter", type: :god, age: 5000}
     sky = %{id: create_string_id,r: "0",name: "sky",type: :location}
     sea = %{id:  create_string_id,r: "0",name: "sea",type: :location}
-    hercules = %{id: @gods.hurcules,r: "0",name: "Hercules", type: :demigod, age: 30}
+    hercules = %{id: @gods.hercules,r: "0",name: "Hercules", type: :demigod, age: 30}
     nemean = %{id: create_string_id,r: "0",name: "Nemean", type: :monster}
     cerberus = %{id: create_string_id,r: "0",name: "Cerberus", type: :monster}
     hydra = %{id: create_string_id,r: "0",name: "Hydra", type: :monster}
