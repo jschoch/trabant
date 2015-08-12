@@ -59,3 +59,6 @@ atom  | description
 :out_neightbor | 
 :default| the default type
 
+[origin](http://github.com/jschoch/trabant)
+[idgon.com](http://idgon.com)
+[my technology blog](http://blog.brng.us)
