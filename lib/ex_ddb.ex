@@ -142,9 +142,9 @@ defmodule Ddb do
   end
   def create_v(graph,%{id: id, r: r} = term,label) when is_binary(id) do
     test_id(id)
-    vertex = %Ddb.V{} |> Map.merge(term)
-    vertex = Map.merge(vertex,%{t: "node",v_type: "node"})
-    {:ok, res} = Dynamo.put_item(t_name(),vertex, return_values: :all_old)
+    vertex = %Ddb.V{t: "node",v_type: "node"} |> Map.merge(term)
+    {ret, res} = Dynamo.put_item(t_name(),vertex, return_values: :all_old)
+    if ret == :error, do: raise "create_v: put_item error"<> inspect {term,label,res}
     if !res === %{}, do: Logger.error "create_v: overwrite, old value: " <> inspect res
     # TODO: this should be optional one day, for now casting strings and atoms is driving me nutz
     {:ok, item} = Dynamo.get_item(t_name(),%{id: vertex.id, r: vertex.r})
