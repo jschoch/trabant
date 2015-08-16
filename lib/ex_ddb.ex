@@ -144,8 +144,13 @@ defmodule Ddb do
     test_id(id)
     vertex = %Ddb.V{} |> Map.merge(term)
     vertex = Map.merge(vertex,%{t: "node",v_type: "node"})
-    res = Dynamo.put_item(t_name(),vertex)
-    vertex
+    {:ok, res} = Dynamo.put_item(t_name(),vertex, return_values: :all_old)
+    if !res === %{}, do: Logger.error "create_v: overwrite, old value: " <> inspect res
+    # TODO: this should be optional one day, for now casting strings and atoms is driving me nutz
+    {:ok, item} = Dynamo.get_item(t_name(),%{id: vertex.id, r: vertex.r})
+    r = decode_vertex(item["Item"])
+    if r == nil, do: raise "create_v: disaster! "<> inspect {id,r,term,label,item}
+    r
   end
   @doc "another hack for range key"
   def create_v(graph,%{id: id} = term,label) when is_binary(id) do
