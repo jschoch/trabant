@@ -29,7 +29,7 @@ defmodule Trabant.Mixfile do
   defp deps do
     [ 
     {:benchmark,github: "mzruya/elixir-benchmark", only: :test},
-    {:mdigraph,git: "https://github.com/jschoch/erlang-mdigraph"},
+    #{:mdigraph,git: "https://github.com/jschoch/erlang-mdigraph"},
     {:uuid, "~> 1.0"},
     {:httpoison, "~> 0.7"},
     {:ex_aws,github: "CargoSense/ex_aws"},

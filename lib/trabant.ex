@@ -18,11 +18,11 @@ defmodule Trabant do
     #end
   end
   def stop do
-    case backend do
-      Mdigraph ->
-        :mnesia.stop
-      _ -> nil
-    end
+    #case backend do
+      #Mdigraph ->
+        #  :mnesia.stop
+        #_ -> nil
+    #end
   end
   def backend() do
     Application.get_env(__MODULE__,:backend)
