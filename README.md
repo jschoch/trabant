@@ -5,7 +5,63 @@ Trabant
  
 * inspired by [gremlin](https://github.com/tinkerpop/gremlin) and [pacer](https://github.com/xnlogic/pacer)
 
+# Setup
 
+* configure your configs
+## 1. config/dev.exs
+
+```elixir
+use Mix.Config
+
+config :ex_aws,
+  dynamodb: [
+    host: "localhost",
+    scheme: "http://",
+    port: "8000"
+    ],
+  access_key_id: "abc #{__MODULE__}#{Mix.env}",
+  secret_access_key: "abc #{__MODULE__}#{Mix.env}"
+```
+
+## 2. add httpoison to applications in mix.exs
+
+```elixir
+
+def application do
+    [mod: {BlogTrabant, []},
+     applications: [:phoenix, :phoenix_html, :cowboy, :logger,:httpoison]]
+  end
+```
+
+## 3. Add dependencies in mix.exs
+
+```elixir
+  defp deps do
+    [
+      {:timex, "~> 0.19.2"}
+      {:trabant,github: "jschoch/trabant"}
+    ]
+  end
+
+```
+
+## 4. setup your tests to clean up your db if you want
+
+```elixir 
+  import Trabant
+  setup_all do
+    Trabant.backend(Ddb)
+  end
+  setup do
+    case Mix.env do
+      :prod -> raise "can't delete prod for tests fool"
+      _ ->
+        delete_graph
+        new
+    end
+    :ok
+  end
+```
 
 ```elixir
     
