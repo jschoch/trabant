@@ -44,8 +44,15 @@ def application do
   end
 
 ```
+## 4. add the backend config to your config
 
-## 4. setup your tests to clean up your db if you want
+config/config.ex
+```elixir
+
+config Trabant, backend: Ddb
+```
+
+## 5. setup your tests to clean up your db if you want
 
 ```elixir 
   import Trabant
